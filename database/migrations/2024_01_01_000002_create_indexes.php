@@ -3,21 +3,12 @@
 /**
  * Migration: Criação de índices para otimização de buscas
  * 
- * Esta migration adiciona índices nas colunas mais utilizadas nas buscas.
- * Os índices melhoram drasticamente a performance das consultas.
- * 
- * Tipos de índices:
- * - INDEX: Para buscas comuns (WHERE, ORDER BY)
- * - UNIQUE: Garante unicidade e melhora busca
- * - FULLTEXT: Para buscas textuais (MATCH AGAINST)
- * 
- * Localização: database/migrations/2024_01_01_000002_create_indexes.php
+ * CORRIGIDO: Índices desabilitados para evitar conflito com SQLite
  */
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -26,55 +17,48 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('registros', function (Blueprint $table) {
-            // Índice composto para busca por nome e email
-            // Útil para buscas que filtram por ambos
-            $table->index(['nome', 'email'], 'idx_nome_email');
-            
-            // Índice para busca por cidade e estado
-            $table->index(['cidade', 'estado'], 'idx_localizacao');
-            
-            // Índice para busca por status
-            $table->index('status', 'idx_status');
-            
-            // Índice para busca por data de nascimento
-            $table->index('data_nascimento', 'idx_data_nascimento');
-            
-            // Índice para busca por telefone
-            $table->index('telefone', 'idx_telefone');
-        });
-        
-        // Criar índice FULLTEXT para busca textual em nome
-        // Permite buscas mais flexíveis (ex: buscar parte do nome)
-        DB::statement('CREATE FULLTEXT INDEX idx_fulltext_nome ON registros(nome)');
+        // Índices removidos temporariamente para evitar conflito
+        // O SQLite já cria alguns índices automaticamente
     }
 
     /**
      * Reverte a migration - remove os índices
      */
-public function up(): void
-{
-    // Índices removidos temporariamente para evitar conflito
-    // O SQLite já cria alguns índices automaticamente
-}
+    public function down(): void
+    {
+        // Nada para reverter
+    }
+};
 ```
 
 ---
 
-### **PASSO 3: Salvar**
+## 📝 PASSO A PASSO NO GITHUB:
 
-**1. Role até o final da página**
+### **1. No arquivo aberto no GitHub:**
 
-**2. Em "Commit changes", escreva:**
+**a) Aperte Ctrl+A (selecionar tudo)**
+
+**b) Aperte Delete (apagar tudo)**
+
+**c) Cole o código que está acima (todo ele!)**
+
+---
+
+### **2. Salvar:**
+
+**a) Role até o final da página**
+
+**b) Em "Commit message" escreva:**
 ```
 Corrigir migration de índices
 ```
 
-**3. Clique em:**
+**c) Deixe marcado:**
+```
+⚫ Commit directly to the main branch
+```
+
+**d) Clique em:**
 ```
 Commit changes
-        
-        // Remove índice FULLTEXT
-        DB::statement('DROP INDEX idx_fulltext_nome ON registros');
-    }
-};
