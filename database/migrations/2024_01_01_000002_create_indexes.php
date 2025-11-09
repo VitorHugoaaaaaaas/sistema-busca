@@ -52,16 +52,27 @@ return new class extends Migration
     /**
      * Reverte a migration - remove os índices
      */
-    public function down(): void
-    {
-        Schema::table('registros', function (Blueprint $table) {
-            // Remove índices compostos
-            $table->dropIndex('idx_nome_email');
-            $table->dropIndex('idx_localizacao');
-            $table->dropIndex('idx_status');
-            $table->dropIndex('idx_data_nascimento');
-            $table->dropIndex('idx_telefone');
-        });
+public function up(): void
+{
+    // Índices removidos temporariamente para evitar conflito
+    // O SQLite já cria alguns índices automaticamente
+}
+```
+
+---
+
+### **PASSO 3: Salvar**
+
+**1. Role até o final da página**
+
+**2. Em "Commit changes", escreva:**
+```
+Corrigir migration de índices
+```
+
+**3. Clique em:**
+```
+Commit changes
         
         // Remove índice FULLTEXT
         DB::statement('DROP INDEX idx_fulltext_nome ON registros');
