@@ -1,4 +1,4 @@
-<?php
+php<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -15,22 +15,4 @@ return new class extends Migration
     {
         // Nada para reverter
     }
-};
-```
-
-**⚠️ IMPORTANTE:** NÃO copie as linhas com ``` (três crases)!
-
----
-
-### **PASSO 3: Salvar**
-
-**1. Role até o final**
-
-**2. Em "Commit message":**
-```
-Corrigir erro de sintaxe na migration
-```
-
-**3. Clique em:**
-```
-Commit changes
+}
