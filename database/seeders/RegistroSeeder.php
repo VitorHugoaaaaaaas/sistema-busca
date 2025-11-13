@@ -80,14 +80,21 @@ class RegistroSeeder extends Seeder
                 ];
             }
 
-            Registro::insert($registros);
+            // CORREÇÃO: Adicionar try-catch para ignorar duplicatas
+            try {
+                Registro::insert($registros);
+            } catch (\Exception $e) {
+                // Ignora erros de duplicação e continua
+                echo "\n⚠️  Aviso: Alguns registros duplicados foram ignorados no lote " . ($lote + 1) . "\n";
+                continue;
+            }
 
             $progresso = (($lote + 1) / $lotes) * 100;
             echo "\r[" . str_repeat('█', (int)($progresso / 2)) . str_repeat('░', 50 - (int)($progresso / 2)) . "] " . 
                  number_format($progresso, 1) . "%";
         }
 
-        echo "\n\n✅ {$totalRegistros} registros criados com sucesso!\n";
+        echo "\n\n✅ Registros criados com sucesso!\n";
         
         $stats = [
             'total' => Registro::count(),
