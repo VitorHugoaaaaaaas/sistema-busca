@@ -1,297 +1,235 @@
 <?php
 
-/**
- * Controller: BuscaController
- * 
- * Controlador principal do sistema de buscas.
- * Gerencia as requisições HTTP e coordena os diferentes tipos de busca.
- * 
- * Localização: app/Http/Controllers/BuscaController.php
- */
-
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Services\BuscaSequencialService;
-use App\Services\BuscaIndexadaService;
-use App\Services\BuscaHashMapService;
 use App\Models\Registro;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class BuscaController extends Controller
 {
-    /**
-     * Instâncias dos serviços de busca
-     */
-    private $buscaSequencial;
-    private $buscaIndexada;
-    private $buscaHashMap;
-
-    /**
-     * Construtor - injeta os serviços
-     */
-    public function __construct(
-        BuscaSequencialService $buscaSequencial,
-        BuscaIndexadaService $buscaIndexada,
-        BuscaHashMapService $buscaHashMap
-    ) {
-        $this->buscaSequencial = $buscaSequencial;
-        $this->buscaIndexada = $buscaIndexada;
-        $this->buscaHashMap = $buscaHashMap;
-    }
-
-    /**
-     * Página inicial - Dashboard
-     * 
-     * Exibe estatísticas e informações sobre o sistema
-     * Rota: GET /
-     */
-    public function index()
-    {
-        // Busca estatísticas do banco
-        $stats = Registro::estatisticas();
-        
-        // Informações sobre cada tipo de busca
-        $infoSequencial = BuscaSequencialService::getInfo();
-        $infoIndexada = BuscaIndexadaService::getInfo();
-        $infoHashMap = BuscaHashMapService::getInfo();
-        
-        return view('busca.index', compact(
-            'stats',
-            'infoSequencial',
-            'infoIndexada',
-            'infoHashMap'
-        ));
-    }
-
-    /**
-     * Página de pesquisa
-     * 
-     * Exibe o formulário de busca
-     * Rota: GET /pesquisar
-     */
-    public function pesquisar()
-    {
-        return view('busca.pesquisar');
-    }
-
-    /**
-     * Executa a busca
-     * 
-     * Processa o formulário e executa os tipos de busca selecionados
-     * Rota: POST /buscar
-     */
     public function buscar(Request $request)
     {
-        // Validação dos dados
-        $validated = $request->validate([
-            'tipo_busca' => 'required|array|min:1',
-            'tipo_busca.*' => 'in:sequencial,indexada,hashmap',
-            'campo_busca' => 'required|in:nome,cpf,cidade,email',
-            'termo_busca' => 'required|string|min:2',
-        ], [
-            'tipo_busca.required' => 'Selecione pelo menos um tipo de busca',
-            'tipo_busca.*.in' => 'Tipo de busca inválido',
-            'campo_busca.required' => 'Selecione o campo de busca',
-            'campo_busca.in' => 'Campo de busca inválido',
-            'termo_busca.required' => 'Digite o termo a ser buscado',
-            'termo_busca.min' => 'O termo deve ter no mínimo 2 caracteres',
-        ]);
+        try {
+            $termo = strtoupper(trim($request->input('termo', '')));
+            $metodo = $request->input('metodo', 'sequencial');
 
-        $resultados = [];
-        $tiposBusca = $validated['tipo_busca'];
-        $campo = $validated['campo_busca'];
-        $termo = $validated['termo_busca'];
+            if (empty($termo)) {
+                return response()->json([
+                    'erro' => 'Por favor, digite um termo de busca',
+                    'resultados' => [],
+                    'tempo' => 0,
+                    'metodo' => $metodo,
+                    'total' => 0
+                ]);
+            }
 
-        // Executa cada tipo de busca selecionado
-        foreach ($tiposBusca as $tipo) {
-            switch ($tipo) {
+            $inicio = microtime(true);
+            $resultados = collect([]);
+
+            switch ($metodo) {
                 case 'sequencial':
-                    $resultados['sequencial'] = $this->executarBuscaSequencial($campo, $termo);
+                    $resultados = $this->buscaSequencial($termo);
                     break;
-                    
+
                 case 'indexada':
-                    $resultados['indexada'] = $this->executarBuscaIndexada($campo, $termo);
+                    $resultados = $this->buscaIndexada($termo);
                     break;
-                    
+
                 case 'hashmap':
-                    $resultados['hashmap'] = $this->executarBuscaHashMap($campo, $termo);
+                    $resultados = $this->buscaHashMap($termo);
                     break;
-            }
-        }
 
-        // Calcula a diferença de performance
-        $comparacao = $this->compararPerformance($resultados);
-
-        return view('busca.resultados', compact(
-            'resultados',
-            'comparacao',
-            'campo',
-            'termo',
-            'tiposBusca'
-        ));
-    }
-
-    /**
-     * Executa busca sequencial
-     * 
-     * @param string $campo Campo a ser buscado
-     * @param string $termo Termo da busca
-     * @return array Resultado da busca
-     */
-    private function executarBuscaSequencial(string $campo, string $termo): array
-    {
-        switch ($campo) {
-            case 'nome':
-                return $this->buscaSequencial->buscarPorNome($termo);
-            case 'cpf':
-                return $this->buscaSequencial->buscarPorCpf($termo);
-            case 'cidade':
-                return $this->buscaSequencial->buscarPorCidade($termo);
-            default:
-                return $this->buscaSequencial->buscarPorNome($termo);
-        }
-    }
-
-    /**
-     * Executa busca indexada
-     * 
-     * @param string $campo Campo a ser buscado
-     * @param string $termo Termo da busca
-     * @return array Resultado da busca
-     */
-    private function executarBuscaIndexada(string $campo, string $termo): array
-    {
-        switch ($campo) {
-            case 'nome':
-                return $this->buscaIndexada->buscarPorNome($termo);
-            case 'cpf':
-                return $this->buscaIndexada->buscarPorCpf($termo);
-            case 'cidade':
-                return $this->buscaIndexada->buscarPorCidade($termo);
-            case 'email':
-                return $this->buscaIndexada->buscarPorEmail($termo);
-            default:
-                return $this->buscaIndexada->buscarPorNome($termo);
-        }
-    }
-
-    /**
-     * Executa busca por HashMap
-     * 
-     * @param string $campo Campo a ser buscado
-     * @param string $termo Termo da busca
-     * @return array Resultado da busca
-     */
-    private function executarBuscaHashMap(string $campo, string $termo): array
-    {
-        switch ($campo) {
-            case 'nome':
-                return $this->buscaHashMap->buscarPorNome($termo);
-            case 'cpf':
-                return $this->buscaHashMap->buscarPorCpf($termo);
-            case 'cidade':
-                return $this->buscaHashMap->buscarPorCidade($termo);
-            default:
-                return $this->buscaHashMap->buscarPorNome($termo);
-        }
-    }
-
-    /**
-     * Compara a performance entre os tipos de busca
-     * 
-     * @param array $resultados Resultados de todas as buscas
-     * @return array Comparação de performance
-     */
-    private function compararPerformance(array $resultados): array
-    {
-        if (empty($resultados)) {
-            return [];
-        }
-
-        $tempos = [];
-        $maisRapido = null;
-        $maisLento = null;
-
-        // Coleta os tempos
-        foreach ($resultados as $tipo => $resultado) {
-            $tempo = $resultado['tempo_execucao'];
-            $tempos[$tipo] = $tempo;
-
-            if ($maisRapido === null || $tempo < $tempos[$maisRapido]) {
-                $maisRapido = $tipo;
+                default:
+                    return response()->json([
+                        'erro' => 'Método de busca inválido',
+                        'resultados' => [],
+                        'tempo' => 0,
+                        'metodo' => $metodo,
+                        'total' => 0
+                    ]);
             }
 
-            if ($maisLento === null || $tempo > $tempos[$maisLento]) {
-                $maisLento = $tipo;
-            }
+            $tempo = (microtime(true) - $inicio) * 1000;
+
+            return response()->json([
+                'resultados' => $resultados->take(100)->values(),
+                'tempo' => round($tempo, 4),
+                'metodo' => $metodo,
+                'total' => $resultados->count(),
+                'comparacoes' => $this->calcularComparacoes($metodo, $resultados->count())
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'erro' => 'Erro ao realizar busca: ' . $e->getMessage(),
+                'resultados' => [],
+                'tempo' => 0,
+                'metodo' => $metodo ?? 'desconhecido',
+                'total' => 0
+            ], 500);
         }
+    }
 
-        // Calcula diferenças percentuais
-        $diferencas = [];
-        $tempoBase = $tempos[$maisRapido];
+    private function buscaSequencial($termo)
+    {
+        return Registro::where(function ($query) use ($termo) {
+            $query->where('nome', 'like', "%{$termo}%")
+                ->orWhere('cpf', 'like', "%{$termo}%")
+                ->orWhere('email', 'like', "%{$termo}%")
+                ->orWhere('cidade', 'like', "%{$termo}%");
+        })->get();
+    }
 
-        foreach ($tempos as $tipo => $tempo) {
-            if ($tipo === $maisRapido) {
-                $diferencas[$tipo] = 0;
+    private function buscaIndexada($termo)
+    {
+        $cpfLimpo = preg_replace('/[^0-9]/', '', $termo);
+
+        return Registro::where(function ($query) use ($termo, $cpfLimpo) {
+            if (strlen($cpfLimpo) == 11) {
+                $query->where('cpf', $cpfLimpo);
             } else {
-                $diferenca = (($tempo - $tempoBase) / $tempoBase) * 100;
-                $diferencas[$tipo] = round($diferenca, 2);
+                $query->where('nome', $termo)
+                    ->orWhere('email', $termo)
+                    ->orWhere('cidade', $termo);
             }
+        })->get();
+    }
+
+    private function buscaHashMap($termo)
+    {
+        try {
+            // Tentar usar cache, se falhar buscar direto
+            $registros = Cache::remember('todos_registros', 3600, function () {
+                return Registro::all();
+            });
+        } catch (\Exception $e) {
+            // Se cache falhar, buscar direto do banco
+            $registros = Registro::all();
         }
 
-        return [
-            'tempos' => $tempos,
-            'mais_rapido' => $maisRapido,
-            'mais_lento' => $maisLento,
-            'diferencas' => $diferencas,
-            'tempo_economizado' => $tempos[$maisLento] - $tempos[$maisRapido],
-        ];
+        $cpfLimpo = preg_replace('/[^0-9]/', '', $termo);
+
+        return $registros->filter(function ($registro) use ($termo, $cpfLimpo) {
+            // Proteção contra valores null
+            $nome = $registro->nome ?? '';
+            $cpf = $registro->cpf ?? '';
+            $email = $registro->email ?? '';
+            $cidade = $registro->cidade ?? '';
+
+            // Busca exata por CPF
+            if (strlen($cpfLimpo) == 11 && $cpf == $cpfLimpo) {
+                return true;
+            }
+
+            // Busca por nome (case insensitive)
+            if (!empty($nome) && stripos($nome, $termo) !== false) {
+                return true;
+            }
+
+            // Busca exata por email
+            if (!empty($email) && strtoupper($email) == $termo) {
+                return true;
+            }
+
+            // Busca por cidade
+            if (!empty($cidade) && stripos($cidade, $termo) !== false) {
+                return true;
+            }
+
+            return false;
+        });
     }
 
-    /**
-     * Página "Sobre"
-     * 
-     * Informações sobre o projeto e as tecnologias
-     * Rota: GET /sobre
-     */
-    public function sobre()
+    private function calcularComparacoes($metodo, $resultados)
     {
-        return view('busca.sobre');
+        try {
+            $total = Registro::count();
+
+            switch ($metodo) {
+                case 'sequencial':
+                    return $total;
+
+                case 'indexada':
+                    return max(1, (int)ceil(log($total, 2)));
+
+                case 'hashmap':
+                    return $resultados > 0 ? 1 : 0;
+
+                default:
+                    return 0;
+            }
+        } catch (\Exception $e) {
+            return 0;
+        }
     }
 
-    /**
-     * Limpa o cache dos HashMaps
-     * 
-     * Rota: POST /limpar-cache
-     */
-    public function limparCache()
+    public function comparar(Request $request)
     {
-        $this->buscaHashMap->limparCache();
-        
-        return redirect()->back()->with('success', 'Cache dos HashMaps limpo com sucesso!');
-    }
+        try {
+            $termo = strtoupper(trim($request->input('termo', '')));
 
-    /**
-     * API: Retorna estatísticas do sistema
-     * 
-     * Rota: GET /api/estatisticas
-     */
-    public function estatisticas()
-    {
-        return response()->json(Registro::estatisticas());
-    }
+            if (empty($termo)) {
+                return response()->json([
+                    'erro' => 'Por favor, digite um termo de busca'
+                ], 400);
+            }
 
-    /**
-     * API: Retorna informações sobre os tipos de busca
-     * 
-     * Rota: GET /api/info-buscas
-     */
-    public function infoBuscas()
-    {
-        return response()->json([
-            'sequencial' => BuscaSequencialService::getInfo(),
-            'indexada' => BuscaIndexadaService::getInfo(),
-            'hashmap' => BuscaHashMapService::getInfo(),
-        ]);
+            $resultados = [];
+
+            foreach (['sequencial', 'indexada', 'hashmap'] as $metodo) {
+                $tempRequest = new Request([
+                    'termo' => $termo,
+                    'metodo' => $metodo
+                ]);
+
+                $response = $this->buscar($tempRequest);
+                $data = $response->getData(true);
+
+                $resultados[$metodo] = [
+                    'tempo' => $data['tempo'] ?? 0,
+                    'total' => $data['total'] ?? 0
+                ];
+            }
+
+            $tempoSequencial = $resultados['sequencial']['tempo'];
+            $tempoIndexada = $resultados['indexada']['tempo'];
+            $tempoHashmap = $resultados['hashmap']['tempo'];
+
+            $tempos = [
+                'sequencial' => $tempoSequencial,
+                'indexada' => $tempoIndexada,
+                'hashmap' => $tempoHashmap
+            ];
+
+            asort($tempos);
+            $maisRapida = array_key_first($tempos);
+            $maisLenta = array_key_last($tempos);
+
+            return response()->json([
+                'resultados' => $resultados,
+                'analise' => [
+                    'mais_rapida' => [
+                        'metodo' => ucfirst($maisRapida),
+                        'tempo' => $tempos[$maisRapida]
+                    ],
+                    'mais_lenta' => [
+                        'metodo' => ucfirst($maisLenta),
+                        'tempo' => $tempos[$maisLenta]
+                    ],
+                    'economia_indexada' => $tempoSequencial > 0 
+                        ? round((($tempoSequencial - $tempoIndexada) / $tempoSequencial) * 100, 2)
+                        : 0,
+                    'economia_hashmap' => $tempoSequencial > 0
+                        ? round((($tempoSequencial - $tempoHashmap) / $tempoSequencial) * 100, 2)
+                        : 0
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'erro' => 'Erro na comparação: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
