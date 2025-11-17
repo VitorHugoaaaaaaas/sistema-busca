@@ -99,8 +99,8 @@ class BuscaController extends Controller
                 return true;
             }
             
-            // 2. Busca por NOME (contém)
-            if (str_contains($registro->nome, $termo)) {
+            // 2. Busca por NOME (contém) - USANDO strpos ao invés de str_contains
+            if (strpos($registro->nome, $termo) !== false) {
                 return true;
             }
             
@@ -109,8 +109,8 @@ class BuscaController extends Controller
                 return true;
             }
             
-            // 4. Busca por CIDADE (contém)
-            if (str_contains($registro->cidade, $termo)) {
+            // 4. Busca por CIDADE (contém) - USANDO strpos ao invés de str_contains
+            if (strpos($registro->cidade, $termo) !== false) {
                 return true;
             }
             
@@ -162,8 +162,8 @@ class BuscaController extends Controller
             $data = $response->getData(true);
 
             $resultados[$metodo] = [
-                'tempo' => $data['tempo'] ?? 0,
-                'total' => $data['total'] ?? 0
+                'tempo' => isset($data['tempo']) ? $data['tempo'] : 0,
+                'total' => isset($data['total']) ? $data['total'] : 0
             ];
         }
 
