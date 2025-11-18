@@ -1,27 +1,29 @@
 <?php
 
-/**
- * Arquivo de Rotas Web
- * 
- * Define todas as rotas HTTP do sistema.
- * Cada rota mapeia uma URL para um método do controller.
- * 
- * Localização: routes/web.php
- */
-
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BuscaController;
 
 /*
 |--------------------------------------------------------------------------
-| Rotas Públicas
+| Web Routes
 |--------------------------------------------------------------------------
 |
-| Rotas acessíveis sem autenticação
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
 |
 */
 
-// Página inicial / Dashboard
+/*
+|--------------------------------------------------------------------------
+| Rotas Principais
+|--------------------------------------------------------------------------
+|
+| Rotas das páginas e funcionalidades principais do sistema
+|
+*/
+
+// Página inicial
 Route::get('/', [BuscaController::class, 'index'])->name('home');
 
 // Página de pesquisa
@@ -29,6 +31,9 @@ Route::get('/pesquisar', [BuscaController::class, 'pesquisar'])->name('pesquisar
 
 // Executa a busca (POST)
 Route::post('/buscar', [BuscaController::class, 'buscar'])->name('buscar');
+
+// ⚡ NOVA ROTA - Comparar os 3 métodos de busca
+Route::post('/comparar', [BuscaController::class, 'comparar'])->name('comparar');
 
 // Página sobre
 Route::get('/sobre', [BuscaController::class, 'sobre'])->name('sobre');
