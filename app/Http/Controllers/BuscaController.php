@@ -75,60 +75,211 @@ class BuscaController extends Controller
     }
 
     /**
-     * Executa a busca
+     * MÉTODO ATUALIZADO: Executa a busca (compatível com a nova view)
      * 
-     * Processa o formulário e executa os tipos de busca selecionados
+     * Processa requisições AJAX do formulário
      * Rota: POST /buscar
      */
     public function buscar(Request $request)
     {
-        // Validação dos dados
+        // Validação dos dados para o novo formato
         $validated = $request->validate([
-            'tipo_busca' => 'required|array|min:1',
-            'tipo_busca.*' => 'in:sequencial,indexada,hashmap',
-            'campo_busca' => 'required|in:nome,cpf,cidade,email',
-            'termo_busca' => 'required|string|min:2',
-        ], [
-            'tipo_busca.required' => 'Selecione pelo menos um tipo de busca',
-            'tipo_busca.*.in' => 'Tipo de busca inválido',
-            'campo_busca.required' => 'Selecione o campo de busca',
-            'campo_busca.in' => 'Campo de busca inválido',
-            'termo_busca.required' => 'Digite o termo a ser buscado',
-            'termo_busca.min' => 'O termo deve ter no mínimo 2 caracteres',
+            'termo' => 'required|string|min:1',
+            'metodo' => 'required|in:sequencial,indexada,hashmap'
         ]);
 
+        $termo = $validated['termo'];
+        $metodo = $validated['metodo'];
+        
+        // Registra o tempo de início
+        $startTime = microtime(true);
+        
+        // Executa a busca de acordo com o método selecionado
         $resultados = [];
-        $tiposBusca = $validated['tipo_busca'];
-        $campo = $validated['campo_busca'];
-        $termo = $validated['termo_busca'];
+        
+        switch ($metodo) {
+            case 'sequencial':
+                $resultados = $this->executarBuscaCompleta($termo, 'sequencial');
+                break;
+                
+            case 'indexada':
+                $resultados = $this->executarBuscaCompleta($termo, 'indexada');
+                break;
+                
+            case 'hashmap':
+                $resultados = $this->executarBuscaCompleta($termo, 'hashmap');
+                break;
+        }
+        
+        // Calcula o tempo de execução
+        $endTime = microtime(true);
+        $tempoExecucao = round(($endTime - $startTime) * 1000, 2); // em milissegundos
+        
+        // Retorna resposta JSON para requisições AJAX
+        return response()->json([
+            'success' => true,
+            'resultados' => $resultados,
+            'total' => count($resultados),
+            'tempo' => $tempoExecucao,
+            'metodo' => $metodo
+        ]);
+    }
 
-        // Executa cada tipo de busca selecionado
-        foreach ($tiposBusca as $tipo) {
-            switch ($tipo) {
+    /**
+     * NOVO MÉTODO: Compara todos os métodos de busca
+     * 
+     * Executa os três tipos de busca e retorna análise comparativa
+     * Rota: POST /comparar
+     */
+    public function comparar(Request $request)
+    {
+        $request->validate([
+            'termo' => 'required|string|min:1'
+        ]);
+
+        $termo = $request->input('termo');
+        
+        // Array para armazenar os resultados de cada método
+        $resultados = [];
+        
+        // 1. BUSCA SEQUENCIAL
+        $startTime = microtime(true);
+        $sequencialResults = $this->executarBuscaCompleta($termo, 'sequencial');
+        $endTime = microtime(true);
+        
+        $resultados['sequencial'] = [
+            'tempo' => round(($endTime - $startTime) * 1000, 2),
+            'total' => count($sequencialResults),
+            'metodo' => 'sequencial',
+            'resultados' => $sequencialResults
+        ];
+        
+        // 2. BUSCA INDEXADA
+        $startTime = microtime(true);
+        $indexadaResults = $this->executarBuscaCompleta($termo, 'indexada');
+        $endTime = microtime(true);
+        
+        $resultados['indexada'] = [
+            'tempo' => round(($endTime - $startTime) * 1000, 2),
+            'total' => count($indexadaResults),
+            'metodo' => 'indexada',
+            'resultados' => $indexadaResults
+        ];
+        
+        // 3. BUSCA HASHMAP
+        $startTime = microtime(true);
+        $hashmapResults = $this->executarBuscaCompleta($termo, 'hashmap');
+        $endTime = microtime(true);
+        
+        $resultados['hashmap'] = [
+            'tempo' => round(($endTime - $startTime) * 1000, 2),
+            'total' => count($hashmapResults),
+            'metodo' => 'hashmap',
+            'resultados' => $hashmapResults
+        ];
+        
+        // Análise dos resultados
+        $analise = $this->analisarResultadosComparacao($resultados);
+        
+        return response()->json([
+            'success' => true,
+            'resultados' => $resultados,
+            'analise' => $analise
+        ]);
+    }
+
+    /**
+     * NOVO MÉTODO: Executa busca completa em todos os campos
+     * 
+     * @param string $termo Termo de busca
+     * @param string $metodo Método de busca a usar
+     * @return array Resultados encontrados
+     */
+    private function executarBuscaCompleta(string $termo, string $metodo): array
+    {
+        $resultadosCombinados = [];
+        $idsJaIncluidos = [];
+        
+        // Busca em todos os campos
+        $campos = ['nome', 'cpf', 'cidade', 'email'];
+        
+        foreach ($campos as $campo) {
+            $resultadosCampo = [];
+            
+            switch ($metodo) {
                 case 'sequencial':
-                    $resultados['sequencial'] = $this->executarBuscaSequencial($campo, $termo);
+                    $resultadosCampo = $this->executarBuscaSequencial($campo, $termo);
                     break;
                     
                 case 'indexada':
-                    $resultados['indexada'] = $this->executarBuscaIndexada($campo, $termo);
+                    $resultadosCampo = $this->executarBuscaIndexada($campo, $termo);
                     break;
                     
                 case 'hashmap':
-                    $resultados['hashmap'] = $this->executarBuscaHashMap($campo, $termo);
+                    $resultadosCampo = $this->executarBuscaHashMap($campo, $termo);
                     break;
             }
+            
+            // Adiciona apenas registros únicos
+            if (isset($resultadosCampo['dados'])) {
+                foreach ($resultadosCampo['dados'] as $registro) {
+                    if (!in_array($registro->id, $idsJaIncluidos)) {
+                        $resultadosCombinados[] = $registro;
+                        $idsJaIncluidos[] = $registro->id;
+                    }
+                }
+            }
         }
+        
+        return $resultadosCombinados;
+    }
 
-        // Calcula a diferença de performance
-        $comparacao = $this->compararPerformance($resultados);
-
-        return view('busca.resultados', compact(
-            'resultados',
-            'comparacao',
-            'campo',
-            'termo',
-            'tiposBusca'
-        ));
+    /**
+     * NOVO MÉTODO: Analisa resultados da comparação
+     * 
+     * @param array $resultados Resultados dos três métodos
+     * @return array Análise comparativa
+     */
+    private function analisarResultadosComparacao($resultados)
+    {
+        // Encontrar o método mais rápido
+        $maisRapida = null;
+        $tempoMinimo = PHP_INT_MAX;
+        
+        foreach ($resultados as $metodo => $resultado) {
+            if ($resultado['tempo'] < $tempoMinimo) {
+                $tempoMinimo = $resultado['tempo'];
+                $maisRapida = [
+                    'metodo' => $metodo,
+                    'tempo' => $resultado['tempo']
+                ];
+            }
+        }
+        
+        // Calcular economia do HashMap em relação ao Sequencial
+        $economiaHashmap = 0;
+        if ($resultados['sequencial']['tempo'] > 0) {
+            $economiaHashmap = (($resultados['sequencial']['tempo'] - $resultados['hashmap']['tempo']) 
+                / $resultados['sequencial']['tempo']) * 100;
+        }
+        
+        // Calcular economia da Indexada em relação ao Sequencial
+        $economiaIndexada = 0;
+        if ($resultados['sequencial']['tempo'] > 0) {
+            $economiaIndexada = (($resultados['sequencial']['tempo'] - $resultados['indexada']['tempo']) 
+                / $resultados['sequencial']['tempo']) * 100;
+        }
+        
+        return [
+            'mais_rapida' => $maisRapida,
+            'economia_hashmap' => round($economiaHashmap, 2),
+            'economia_indexada' => round($economiaIndexada, 2),
+            'diferenca_tempo' => [
+                'sequencial_vs_indexada' => round($resultados['sequencial']['tempo'] - $resultados['indexada']['tempo'], 2),
+                'sequencial_vs_hashmap' => round($resultados['sequencial']['tempo'] - $resultados['hashmap']['tempo'], 2),
+                'indexada_vs_hashmap' => round($resultados['indexada']['tempo'] - $resultados['hashmap']['tempo'], 2)
+            ]
+        ];
     }
 
     /**
@@ -147,6 +298,11 @@ class BuscaController extends Controller
                 return $this->buscaSequencial->buscarPorCpf($termo);
             case 'cidade':
                 return $this->buscaSequencial->buscarPorCidade($termo);
+            case 'email':
+                // Se não houver método específico, usa buscarPorNome como fallback
+                return method_exists($this->buscaSequencial, 'buscarPorEmail') 
+                    ? $this->buscaSequencial->buscarPorEmail($termo)
+                    : $this->buscaSequencial->buscarPorNome($termo);
             default:
                 return $this->buscaSequencial->buscarPorNome($termo);
         }
@@ -191,6 +347,11 @@ class BuscaController extends Controller
                 return $this->buscaHashMap->buscarPorCpf($termo);
             case 'cidade':
                 return $this->buscaHashMap->buscarPorCidade($termo);
+            case 'email':
+                // Se não houver método específico, usa buscarPorNome como fallback
+                return method_exists($this->buscaHashMap, 'buscarPorEmail')
+                    ? $this->buscaHashMap->buscarPorEmail($termo)
+                    : $this->buscaHashMap->buscarPorNome($termo);
             default:
                 return $this->buscaHashMap->buscarPorNome($termo);
         }
