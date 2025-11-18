@@ -1,205 +1,386 @@
 @extends('layouts.app')
 
-@section('title', 'Início')
+@section('title', 'Pesquisar')
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-data="buscaApp()">
     
-    <!-- Hero Section -->
-    <div class="gradient-animated rounded-xl p-12 text-white text-center mb-12 fade-in">
-        <h1 class="text-5xl font-bold mb-4">Sistema de Busca em Banco de Dados</h1>
-        <p class="text-xl mb-8">Demonstração de Busca Sequencial, Indexada e HashMap</p>
-        <a href="{{ route('pesquisar') }}" class="inline-block bg-white text-purple-600 font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition transform hover:scale-105">
-            <i class="fas fa-search mr-2"></i>Começar a Pesquisar
-        </a>
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">Sistema de Busca</h1>
+        <p class="text-gray-600">Execute buscas e compare a performance dos algoritmos</p>
     </div>
 
-    <!-- Estatísticas -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-        <div class="bg-white rounded-xl p-6 shadow-lg card-hover slide-in">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Total de Registros</p>
-                    <p class="text-3xl font-bold text-gray-900">{{ number_format($stats['total']) }}</p>
-                </div>
-                <div class="bg-blue-100 p-4 rounded-full">
-                    <i class="fas fa-database text-blue-600 text-2xl"></i>
-                </div>
-            </div>
-        </div>
+    <!-- Card de Busca -->
+    <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        
+        <form @submit.prevent="buscar()" class="space-y-6">
+            
+            <!-- Seleção de Tipos de Busca -->
+            <div>
+                <h3 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-list-check mr-2 text-purple-600"></i>
+                    Selecione os Tipos de Busca (pelo menos 1)
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition"
+                           :class="metodo === 'sequencial' ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:border-purple-300'">
+                        <input type="radio" name="metodo" value="sequencial" x-model="metodo" class="mr-3">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-1">
+                                <i class="fas fa-list-ol text-red-600 mr-2"></i>
+                                <span class="font-semibold">Sequencial</span>
+                            </div>
+                            <p class="text-xs text-gray-500">Busca linear registro por registro</p>
+                        </div>
+                    </label>
 
-        <div class="bg-white rounded-xl p-6 shadow-lg card-hover slide-in" style="animation-delay: 0.1s;">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Registros Ativos</p>
-                    <p class="text-3xl font-bold text-green-600">{{ number_format($stats['ativos']) }}</p>
-                </div>
-                <div class="bg-green-100 p-4 rounded-full">
-                    <i class="fas fa-check-circle text-green-600 text-2xl"></i>
-                </div>
-            </div>
-        </div>
+                    <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition"
+                           :class="metodo === 'indexada' ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:border-purple-300'">
+                        <input type="radio" name="metodo" value="indexada" x-model="metodo" class="mr-3">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-1">
+                                <i class="fas fa-bolt text-blue-600 mr-2"></i>
+                                <span class="font-semibold">Indexada</span>
+                            </div>
+                            <p class="text-xs text-gray-500">Usa índices do banco de dados</p>
+                        </div>
+                    </label>
 
-        <div class="bg-white rounded-xl p-6 shadow-lg card-hover slide-in" style="animation-delay: 0.2s;">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Registros Inativos</p>
-                    <p class="text-3xl font-bold text-red-600">{{ number_format($stats['inativos']) }}</p>
-                </div>
-                <div class="bg-red-100 p-4 rounded-full">
-                    <i class="fas fa-times-circle text-red-600 text-2xl"></i>
+                    <label class="flex items-center p-4 border-2 rounded-lg cursor-pointer transition"
+                           :class="metodo === 'hashmap' ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:border-purple-300'">
+                        <input type="radio" name="metodo" value="hashmap" x-model="metodo" class="mr-3">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-1">
+                                <i class="fas fa-hashtag text-green-600 mr-2"></i>
+                                <span class="font-semibold">HashMap</span>
+                            </div>
+                            <p class="text-xs text-gray-500">Tabela hash em memória</p>
+                        </div>
+                    </label>
                 </div>
             </div>
-        </div>
 
-        <div class="bg-white rounded-xl p-6 shadow-lg card-hover slide-in" style="animation-delay: 0.3s;">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium">Estados</p>
-                    <p class="text-3xl font-bold text-purple-600">{{ $stats['por_estado']->count() }}</p>
+            <!-- Campo de Busca COM AUTOCOMPLETE -->
+            <div class="relative">
+                <label class="block text-gray-700 font-semibold mb-3">
+                    <i class="fas fa-keyboard mr-2 text-purple-600"></i>
+                    Digite o Termo de Busca
+                </label>
+                
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        x-model="termo" 
+                        @input="buscarSugestoes()"
+                        @focus="mostrarSugestoes = true"
+                        @blur="setTimeout(() => mostrarSugestoes = false, 200)"
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none text-lg"
+                        placeholder="Ex: João, 12345678900, São Paulo..."
+                        required
+                    >
+                    
+                    <!-- Dropdown de Sugestões -->
+                    <div 
+                        x-show="mostrarSugestoes && sugestoes.length > 0" 
+                        class="absolute z-50 w-full mt-2 bg-white border-2 border-purple-300 rounded-lg shadow-2xl max-h-96 overflow-y-auto"
+                        style="display: none;"
+                    >
+                        <!-- Header do Dropdown -->
+                        <div class="sticky top-0 bg-purple-50 px-4 py-3 border-b-2 border-purple-200">
+                            <p class="text-sm font-semibold text-purple-800">
+                                <i class="fas fa-list mr-2"></i>
+                                <span x-text="sugestoes.length"></span> registros encontrados
+                            </p>
+                        </div>
+                        
+                        <!-- Lista de Sugestões -->
+                        <template x-for="sugestao in sugestoes" :key="sugestao.id">
+                            <button
+                                type="button"
+                                @click="selecionarSugestao(sugestao)"
+                                class="w-full text-left px-4 py-4 border-b hover:bg-purple-50 transition-colors"
+                            >
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <!-- Nome -->
+                                        <p class="font-bold text-gray-900 mb-1" x-text="sugestao.nome"></p>
+                                        
+                                        <!-- Email -->
+                                        <p class="text-sm text-gray-600 mb-2">
+                                            <i class="fas fa-envelope text-gray-400 mr-1"></i>
+                                            <span x-text="sugestao.email"></span>
+                                        </p>
+                                        
+                                        <!-- Cidade e CPF -->
+                                        <div class="flex items-center text-xs text-gray-500 space-x-4">
+                                            <span>
+                                                <i class="fas fa-map-marker-alt text-gray-400 mr-1"></i>
+                                                <span x-text="sugestao.cidade + '/' + sugestao.estado"></span>
+                                            </span>
+                                            <span>
+                                                <i class="fas fa-id-card text-gray-400 mr-1"></i>
+                                                <span x-text="formatarCPF(sugestao.cpf)"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Badge de Status -->
+                                    <div class="ml-4">
+                                        <span 
+                                            :class="sugestao.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                                            class="px-3 py-1 rounded-full text-xs font-semibold"
+                                            x-text="sugestao.status === 'ativo' ? 'Ativo' : 'Inativo'"
+                                        ></span>
+                                    </div>
+                                </div>
+                            </button>
+                        </template>
+                    </div>
                 </div>
-                <div class="bg-purple-100 p-4 rounded-full">
-                    <i class="fas fa-map-marked-alt text-purple-600 text-2xl"></i>
-                </div>
+                
+                <p class="text-sm text-gray-500 mt-2">
+                    <i class="fas fa-lightbulb text-yellow-500 mr-1"></i>
+                    Dica: Digite pelo menos 2 caracteres para ver sugestões
+                </p>
             </div>
-        </div>
+
+            <!-- Botões -->
+            <div class="flex gap-4">
+                <button 
+                    type="submit" 
+                    class="flex-1 bg-purple-600 text-white py-4 rounded-lg font-semibold hover:bg-purple-700 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="loading"
+                >
+                    <i class="fas mr-2" :class="loading ? 'fa-spinner fa-spin' : 'fa-search'"></i>
+                    <span x-text="loading ? 'Buscando...' : 'Buscar'"></span>
+                </button>
+
+                <button 
+                    type="button"
+                    @click="comparar()"
+                    class="px-8 bg-indigo-600 text-white py-4 rounded-lg font-semibold hover:bg-indigo-700 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="loading"
+                >
+                    <i class="fas fa-chart-bar mr-2"></i>
+                    Comparar Todos
+                </button>
+            </div>
+        </form>
     </div>
 
-    <!-- Tipos de Busca -->
-    <h2 class="text-3xl font-bold text-gray-900 mb-6">
-        <i class="fas fa-search text-purple-600 mr-3"></i>Tipos de Busca Implementados
-    </h2>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <!-- Busca Sequencial -->
-        <div class="bg-white rounded-xl p-8 shadow-lg card-hover fade-in">
-            <div class="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-6 mx-auto">
-                <i class="fas fa-list-ol text-red-600 text-2xl"></i>
-            </div>
-            
-            <h3 class="text-2xl font-bold text-center mb-4 text-gray-900">{{ $infoSequencial['nome'] }}</h3>
-            
-            <p class="text-gray-600 text-center mb-6">{{ $infoSequencial['descricao'] }}</p>
-            
-            <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-medium text-gray-700">Complexidade:</span>
-                    <span class="bg-red-100 text-red-800 text-xs font-semibold px-3 py-1 rounded-full">
-                        {{ $infoSequencial['complexidade'] }}
-                    </span>
+    <!-- Resultados -->
+    <div x-show="resultados" class="bg-white rounded-xl shadow-lg p-8" style="display: none;">
+        <h3 class="text-2xl font-bold text-gray-900 mb-4">
+            <i class="fas fa-list-check text-purple-600 mr-2"></i>
+            Resultados da Busca
+        </h3>
+        
+        <!-- Info do Resultado -->
+        <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-lg font-semibold text-gray-900">
+                        <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                        <span x-text="total"></span> registros encontrados
+                    </p>
+                    <p class="text-sm text-gray-600 mt-1">
+                        Método: <span class="font-semibold capitalize" x-text="metodoUsado"></span>
+                    </p>
                 </div>
-            </div>
-
-            <div class="space-y-2 mb-6">
-                <p class="text-sm font-semibold text-gray-700">Vantagens:</p>
-                @foreach(array_slice($infoSequencial['vantagens'], 0, 2) as $vantagem)
-                <div class="flex items-start">
-                    <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
-                    <span class="text-sm text-gray-600">{{ $vantagem }}</span>
+                <div class="text-right">
+                    <p class="text-3xl font-bold text-green-600" x-text="tempo + 'ms'"></p>
+                    <p class="text-xs text-gray-500">Tempo de execução</p>
                 </div>
-                @endforeach
-            </div>
-
-            <div class="space-y-2">
-                <p class="text-sm font-semibold text-gray-700">Desvantagens:</p>
-                @foreach(array_slice($infoSequencial['desvantagens'], 0, 2) as $desvantagem)
-                <div class="flex items-start">
-                    <i class="fas fa-times text-red-500 mr-2 mt-1"></i>
-                    <span class="text-sm text-gray-600">{{ $desvantagem }}</span>
-                </div>
-                @endforeach
             </div>
         </div>
 
-        <!-- Busca Indexada -->
-        <div class="bg-white rounded-xl p-8 shadow-lg card-hover fade-in" style="animation-delay: 0.2s;">
-            <div class="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6 mx-auto">
-                <i class="fas fa-bolt text-blue-600 text-2xl"></i>
-            </div>
-            
-            <h3 class="text-2xl font-bold text-center mb-4 text-gray-900">{{ $infoIndexada['nome'] }}</h3>
-            
-            <p class="text-gray-600 text-center mb-6">{{ $infoIndexada['descricao'] }}</p>
-            
-            <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-medium text-gray-700">Complexidade:</span>
-                    <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
-                        {{ $infoIndexada['complexidade'] }}
-                    </span>
-                </div>
-            </div>
-
-            <div class="space-y-2 mb-6">
-                <p class="text-sm font-semibold text-gray-700">Vantagens:</p>
-                @foreach(array_slice($infoIndexada['vantagens'], 0, 2) as $vantagem)
-                <div class="flex items-start">
-                    <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
-                    <span class="text-sm text-gray-600">{{ $vantagem }}</span>
-                </div>
-                @endforeach
-            </div>
-
-            <div class="space-y-2">
-                <p class="text-sm font-semibold text-gray-700">Desvantagens:</p>
-                @foreach(array_slice($infoIndexada['desvantagens'], 0, 2) as $desvantagem)
-                <div class="flex items-start">
-                    <i class="fas fa-times text-red-500 mr-2 mt-1"></i>
-                    <span class="text-sm text-gray-600">{{ $desvantagem }}</span>
-                </div>
-                @endforeach
-            </div>
+        <!-- Tabela de Resultados -->
+        <div x-show="dados.length > 0" class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-700">Nome</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-700">Email</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-700">CPF</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-700">Cidade</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="item in dados" :key="item.id">
+                        <tr class="border-b hover:bg-gray-50 transition">
+                            <td class="px-4 py-3 font-semibold text-gray-900" x-text="item.nome"></td>
+                            <td class="px-4 py-3 text-sm text-gray-600" x-text="item.email"></td>
+                            <td class="px-4 py-3 text-sm text-gray-600" x-text="formatarCPF(item.cpf)"></td>
+                            <td class="px-4 py-3 text-gray-700" x-text="item.cidade + '/' + item.estado"></td>
+                            <td class="px-4 py-3">
+                                <span 
+                                    :class="item.status === 'ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                                    class="px-3 py-1 rounded-full text-xs font-semibold"
+                                    x-text="item.status === 'ativo' ? 'Ativo' : 'Inativo'"
+                                ></span>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
         </div>
 
-        <!-- Busca HashMap -->
-        <div class="bg-white rounded-xl p-8 shadow-lg card-hover fade-in" style="animation-delay: 0.4s;">
-            <div class="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6 mx-auto">
-                <i class="fas fa-hashtag text-green-600 text-2xl"></i>
-            </div>
-            
-            <h3 class="text-2xl font-bold text-center mb-4 text-gray-900">{{ $infoHashMap['nome'] }}</h3>
-            
-            <p class="text-gray-600 text-center mb-6">{{ $infoHashMap['descricao'] }}</p>
-            
-            <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm font-medium text-gray-700">Complexidade:</span>
-                    <span class="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
-                        {{ $infoHashMap['complexidade'] }}
-                    </span>
-                </div>
-            </div>
-
-            <div class="space-y-2 mb-6">
-                <p class="text-sm font-semibold text-gray-700">Vantagens:</p>
-                @foreach(array_slice($infoHashMap['vantagens'], 0, 2) as $vantagem)
-                <div class="flex items-start">
-                    <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
-                    <span class="text-sm text-gray-600">{{ $vantagem }}</span>
-                </div>
-                @endforeach
-            </div>
-
-            <div class="space-y-2">
-                <p class="text-sm font-semibold text-gray-700">Desvantagens:</p>
-                @foreach(array_slice($infoHashMap['desvantagens'], 0, 2) as $desvantagem)
-                <div class="flex items-start">
-                    <i class="fas fa-times text-red-500 mr-2 mt-1"></i>
-                    <span class="text-sm text-gray-600">{{ $desvantagem }}</span>
-                </div>
-                @endforeach
-            </div>
+        <!-- Sem Resultados -->
+        <div x-show="dados.length === 0" class="text-center py-12 text-gray-500">
+            <i class="fas fa-inbox text-6xl mb-4 text-gray-300"></i>
+            <p class="text-lg font-semibold">Nenhum resultado encontrado</p>
+            <p class="text-sm">Tente outro termo de busca</p>
         </div>
-    </div>
-
-    <!-- CTA -->
-    <div class="bg-gradient-to-r from-purple-600 to-blue-500 rounded-xl p-12 text-white text-center fade-in">
-        <h2 class="text-3xl font-bold mb-4">Pronto para Começar?</h2>
-        <p class="text-lg mb-8">Execute buscas e compare a performance entre os três métodos!</p>
-        <a href="{{ route('pesquisar') }}" class="inline-block bg-white text-purple-600 font-semibold px-8 py-3 rounded-lg hover:bg-gray-100 transition transform hover:scale-105">
-            <i class="fas fa-play mr-2"></i>Iniciar Pesquisa
-        </a>
     </div>
 
 </div>
+
+@push('scripts')
+<script>
+function buscaApp() {
+    return {
+        termo: '',
+        metodo: 'sequencial',
+        loading: false,
+        resultados: false,
+        dados: [],
+        tempo: 0,
+        total: 0,
+        metodoUsado: '',
+        sugestoes: [],
+        mostrarSugestoes: false,
+        timeoutSugestao: null,
+
+        // Buscar sugestões em tempo real
+        async buscarSugestoes() {
+            if (this.termo.length < 2) {
+                this.sugestoes = [];
+                return;
+            }
+
+            clearTimeout(this.timeoutSugestao);
+
+            this.timeoutSugestao = setTimeout(async () => {
+                try {
+                    const response = await fetch('{{ route("buscar") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            termo: this.termo,
+                            metodo: 'sequencial'
+                        })
+                    });
+
+                    const data = await response.json();
+                    this.sugestoes = (data.resultados || []).slice(0, 10);
+                    this.mostrarSugestoes = true;
+
+                } catch (error) {
+                    console.error('Erro ao buscar sugestões:', error);
+                }
+            }, 300);
+        },
+
+        // Selecionar sugestão
+        selecionarSugestao(sugestao) {
+            this.termo = sugestao.nome;
+            this.sugestoes = [];
+            this.mostrarSugestoes = false;
+            this.buscar();
+        },
+
+        // Formatar CPF
+        formatarCPF(cpf) {
+            if (!cpf) return '';
+            return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        },
+
+        // Executar busca
+        async buscar() {
+            if (!this.termo.trim()) {
+                alert('Digite um termo de busca');
+                return;
+            }
+
+            this.loading = true;
+            this.resultados = false;
+            this.mostrarSugestoes = false;
+
+            try {
+                const response = await fetch('{{ route("buscar") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        termo: this.termo,
+                        metodo: this.metodo
+                    })
+                });
+
+                const data = await response.json();
+
+                this.dados = data.resultados || [];
+                this.tempo = data.tempo || 0;
+                this.total = data.total || 0;
+                this.metodoUsado = data.metodo || this.metodo;
+                this.resultados = true;
+
+            } catch (error) {
+                alert('Erro ao realizar busca: ' + error.message);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // Comparar métodos
+        async comparar() {
+            if (!this.termo.trim()) {
+                alert('Digite um termo de busca');
+                return;
+            }
+
+            this.loading = true;
+
+            try {
+                const response = await fetch('{{ route("comparar") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        termo: this.termo
+                    })
+                });
+
+                const data = await response.json();
+                
+                alert(
+                    '📊 Comparação de Performance:\n\n' +
+                    '🐢 Sequencial: ' + data.resultados.sequencial.tempo + 'ms (' + data.resultados.sequencial.total + ' resultados)\n' +
+                    '🚀 Indexada: ' + data.resultados.indexada.tempo + 'ms (' + data.resultados.indexada.total + ' resultados)\n' +
+                    '⚡ HashMap: ' + data.resultados.hashmap.tempo + 'ms (' + data.resultados.hashmap.total + ' resultados)\n\n' +
+                    '🏆 Mais rápida: ' + data.analise.mais_rapida.metodo + ' (' + data.analise.mais_rapida.tempo + 'ms)\n' +
+                    '⏱️ Economia: ' + data.analise.economia_hashmap.toFixed(2) + '%'
+                );
+
+            } catch (error) {
+                alert('Erro ao comparar: ' + error.message);
+            } finally {
+                this.loading = false;
+            }
+        }
+    }
+}
+</script>
+@endpush
+
 @endsection
