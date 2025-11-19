@@ -1,29 +1,27 @@
 <?php
 
+/**
+ * Arquivo de Rotas Web
+ * 
+ * Define todas as rotas HTTP do sistema.
+ * Cada rota mapeia uma URL para um método do controller.
+ * 
+ * Localização: routes/web.php
+ */
+
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BuscaController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
+| Rotas Públicas
 |--------------------------------------------------------------------------
 |
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
+| Rotas acessíveis sem autenticação
 |
 */
 
-/*
-|--------------------------------------------------------------------------
-| Rotas Principais
-|--------------------------------------------------------------------------
-|
-| Rotas das páginas e funcionalidades principais do sistema
-|
-*/
-
-// Página inicial
+// Página inicial / Dashboard
 Route::get('/', [BuscaController::class, 'index'])->name('home');
 
 // Página de pesquisa
@@ -52,9 +50,6 @@ Route::get('/api/estatisticas', [BuscaController::class, 'estatisticas'])->name(
 
 // Informações sobre os tipos de busca
 Route::get('/api/info-buscas', [BuscaController::class, 'infoBuscas'])->name('api.info-buscas');
-
-// ✅ NOVA ROTA ADICIONADA: Autocomplete (sugestões enquanto digita)
-Route::post('/api/autocomplete', [BuscaController::class, 'autocomplete'])->name('api.autocomplete');
 
 /*
 |--------------------------------------------------------------------------
