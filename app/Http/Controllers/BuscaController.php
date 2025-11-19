@@ -132,44 +132,6 @@ class BuscaController extends Controller
     }
 
     /**
-     * ✅ NOVO MÉTODO ADICIONADO: Autocomplete
-     * 
-     * Retorna sugestões enquanto o usuário digita
-     * Rota: POST /api/autocomplete
-     */
-    public function autocomplete(Request $request)
-    {
-        // Pega o termo da busca
-        $termo = $request->input('termo', '');
-        
-        // Se o termo for muito curto, retorna vazio
-        if (strlen($termo) < 2) {
-            return response()->json([
-                'success' => true,
-                'resultados' => [],
-                'total' => 0
-            ]);
-        }
-        
-        // Busca rápida no banco (máximo 10 resultados)
-        $resultados = Registro::where(function($query) use ($termo) {
-            $query->where('nome', 'LIKE', '%' . $termo . '%')
-                  ->orWhere('email', 'LIKE', '%' . $termo . '%')
-                  ->orWhere('cpf', 'LIKE', '%' . $termo . '%')
-                  ->orWhere('cidade', 'LIKE', '%' . $termo . '%');
-        })
-        ->select('id', 'nome', 'email', 'cpf', 'cidade', 'estado', 'status')
-        ->limit(10) // Limita a 10 sugestões
-        ->get();
-        
-        return response()->json([
-            'success' => true,
-            'resultados' => $resultados,
-            'total' => $resultados->count()
-        ]);
-    }
-
-    /**
      * Executa busca sequencial
      * 
      * @param string $campo Campo a ser buscado
