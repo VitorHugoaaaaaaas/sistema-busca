@@ -16,8 +16,8 @@
             <p class="text-gray-600">Selecione os tipos de busca e execute a pesquisa</p>
         </div>
 
-        <!-- Formulário de Busca COM ALPINE.JS E AUTOCOMPLETE -->
-        <form action="{{ route('buscar') }}" method="POST" class="space-y-6" x-data="searchApp()">
+        <!-- Formulário de Busca -->
+        <form action="{{ route('buscar') }}" method="POST" class="space-y-6" id="formBusca">
             @csrf
 
             <!-- Seleção de Tipos de Busca -->
@@ -29,9 +29,8 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <!-- Busca Sequencial -->
-                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:border-purple-600"
-                           :class="tiposBusca.includes('sequencial') ? 'border-purple-600 bg-purple-50' : 'border-gray-200'">
-                        <input type="checkbox" name="tipo_busca[]" value="sequencial" class="sr-only" x-model="tiposBusca">
+                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:border-purple-600 tipo-busca-label">
+                        <input type="checkbox" name="tipo_busca[]" value="sequencial" class="sr-only tipo-busca-input">
                         <div class="flex-1">
                             <div class="flex items-center mb-2">
                                 <i class="fas fa-list-ol text-red-600 text-xl mr-2"></i>
@@ -39,14 +38,12 @@
                             </div>
                             <p class="text-xs text-gray-600">Busca linear registro por registro</p>
                         </div>
-                        <i class="fas fa-check-circle text-2xl transition" 
-                           :class="tiposBusca.includes('sequencial') ? 'text-purple-600' : 'text-gray-300'"></i>
+                        <i class="fas fa-check-circle text-2xl transition check-icon text-gray-300"></i>
                     </label>
 
                     <!-- Busca Indexada -->
-                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:border-purple-600"
-                           :class="tiposBusca.includes('indexada') ? 'border-purple-600 bg-purple-50' : 'border-gray-200'">
-                        <input type="checkbox" name="tipo_busca[]" value="indexada" class="sr-only" x-model="tiposBusca">
+                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:border-purple-600 tipo-busca-label">
+                        <input type="checkbox" name="tipo_busca[]" value="indexada" class="sr-only tipo-busca-input">
                         <div class="flex-1">
                             <div class="flex items-center mb-2">
                                 <i class="fas fa-bolt text-blue-600 text-xl mr-2"></i>
@@ -54,14 +51,12 @@
                             </div>
                             <p class="text-xs text-gray-600">Usa índices do banco de dados</p>
                         </div>
-                        <i class="fas fa-check-circle text-2xl transition" 
-                           :class="tiposBusca.includes('indexada') ? 'text-purple-600' : 'text-gray-300'"></i>
+                        <i class="fas fa-check-circle text-2xl transition check-icon text-gray-300"></i>
                     </label>
 
                     <!-- Busca HashMap -->
-                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:border-purple-600"
-                           :class="tiposBusca.includes('hashmap') ? 'border-purple-600 bg-purple-50' : 'border-gray-200'">
-                        <input type="checkbox" name="tipo_busca[]" value="hashmap" class="sr-only" x-model="tiposBusca">
+                    <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:border-purple-600 tipo-busca-label">
+                        <input type="checkbox" name="tipo_busca[]" value="hashmap" class="sr-only tipo-busca-input">
                         <div class="flex-1">
                             <div class="flex items-center mb-2">
                                 <i class="fas fa-hashtag text-green-600 text-xl mr-2"></i>
@@ -69,8 +64,7 @@
                             </div>
                             <p class="text-xs text-gray-600">Tabela hash em memória</p>
                         </div>
-                        <i class="fas fa-check-circle text-2xl transition" 
-                           :class="tiposBusca.includes('hashmap') ? 'text-purple-600' : 'text-gray-300'"></i>
+                        <i class="fas fa-check-circle text-2xl transition check-icon text-gray-300"></i>
                     </label>
                 </div>
 
@@ -87,30 +81,26 @@
                 </label>
                 
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <label class="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition hover:border-purple-600"
-                           :class="campoBusca === 'nome' ? 'border-purple-600 bg-purple-50' : 'border-gray-200'">
-                        <input type="radio" name="campo_busca" value="nome" class="sr-only" x-model="campoBusca">
+                    <label class="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition hover:border-purple-600 campo-busca-label">
+                        <input type="radio" name="campo_busca" value="nome" class="sr-only campo-busca-input">
                         <i class="fas fa-user mr-2 text-purple-600"></i>
                         <span class="font-medium">Nome</span>
                     </label>
 
-                    <label class="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition hover:border-purple-600"
-                           :class="campoBusca === 'cpf' ? 'border-purple-600 bg-purple-50' : 'border-gray-200'">
-                        <input type="radio" name="campo_busca" value="cpf" class="sr-only" x-model="campoBusca">
+                    <label class="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition hover:border-purple-600 campo-busca-label">
+                        <input type="radio" name="campo_busca" value="cpf" class="sr-only campo-busca-input">
                         <i class="fas fa-id-card mr-2 text-purple-600"></i>
                         <span class="font-medium">CPF</span>
                     </label>
 
-                    <label class="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition hover:border-purple-600"
-                           :class="campoBusca === 'cidade' ? 'border-purple-600 bg-purple-50' : 'border-gray-200'">
-                        <input type="radio" name="campo_busca" value="cidade" class="sr-only" x-model="campoBusca">
+                    <label class="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition hover:border-purple-600 campo-busca-label">
+                        <input type="radio" name="campo_busca" value="cidade" class="sr-only campo-busca-input">
                         <i class="fas fa-map-marker-alt mr-2 text-purple-600"></i>
                         <span class="font-medium">Cidade</span>
                     </label>
 
-                    <label class="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition hover:border-purple-600"
-                           :class="campoBusca === 'email' ? 'border-purple-600 bg-purple-50' : 'border-gray-200'">
-                        <input type="radio" name="campo_busca" value="email" class="sr-only" x-model="campoBusca">
+                    <label class="flex items-center justify-center p-3 border-2 rounded-lg cursor-pointer transition hover:border-purple-600 campo-busca-label">
+                        <input type="radio" name="campo_busca" value="email" class="sr-only campo-busca-input">
                         <i class="fas fa-envelope mr-2 text-purple-600"></i>
                         <span class="font-medium">Email</span>
                     </label>
@@ -132,9 +122,6 @@
                     type="text" 
                     id="termo_busca" 
                     name="termo_busca" 
-                    x-model="termoBusca"
-                    @input.debounce.300ms="buscarSugestoes()"
-                    @focus="if(sugestoes.length > 0) mostrarSugestoes = true"
                     value="{{ old('termo_busca') }}"
                     placeholder="Ex: João, 12345678900, São Paulo..."
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent transition"
@@ -143,30 +130,8 @@
                 >
                 
                 <!-- Dropdown de Autocomplete -->
-                <div 
-                    x-show="mostrarSugestoes && sugestoes.length > 0" 
-                    @click.away="mostrarSugestoes = false"
-                    class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
-                    x-transition
-                >
-                    <template x-for="sugestao in sugestoes" :key="sugestao.id">
-                        <div
-                            @click="selecionarSugestao(sugestao)"
-                            class="px-4 py-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
-                        >
-                            <div class="font-semibold text-gray-900" x-text="sugestao.nome"></div>
-                            <div class="text-sm text-gray-600">
-                                <span x-text="sugestao.cidade"></span>/<span x-text="sugestao.estado"></span> - 
-                                CPF: <span x-text="formatarCPF(sugestao.cpf)"></span>
-                            </div>
-                            <div class="text-xs text-gray-500 mt-1" x-text="sugestao.email"></div>
-                        </div>
-                    </template>
-                </div>
-                
-                <!-- Loading indicator -->
-                <div x-show="buscandoSugestoes" class="absolute right-3 top-11">
-                    <i class="fas fa-spinner fa-spin text-purple-600"></i>
+                <div id="autocomplete-dropdown" class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto" style="display: none;">
+                    <!-- Sugestões serão inseridas aqui via JavaScript -->
                 </div>
                 
                 @error('termo_busca')
@@ -192,7 +157,6 @@
                 <button 
                     type="reset" 
                     class="flex-1 sm:flex-initial bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-lg hover:bg-gray-300 transition"
-                    @click="limparFormulario()"
                 >
                     <i class="fas fa-redo mr-2"></i>
                     Limpar
@@ -232,83 +196,130 @@
 
 @push('scripts')
 <script>
-function searchApp() {
-    return {
-        tiposBusca: [],
-        campoBusca: '',
-        termoBusca: '',
-        sugestoes: [],
-        mostrarSugestoes: false,
-        buscandoSugestoes: false,
-        
-        // Função para buscar sugestões (autocomplete)
-        async buscarSugestoes() {
-            // Verifica se tem pelo menos 2 caracteres
-            if (this.termoBusca.length < 2) {
-                this.sugestoes = [];
-                this.mostrarSugestoes = false;
-                return;
+document.addEventListener('DOMContentLoaded', function() {
+    // Gerenciar checkboxes
+    const checkboxes = document.querySelectorAll('.tipo-busca-input');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const label = this.closest('.tipo-busca-label');
+            const icon = label.querySelector('.check-icon');
+            
+            if (this.checked) {
+                label.classList.add('border-purple-600', 'bg-purple-50');
+                label.classList.remove('border-gray-200');
+                icon.classList.add('text-purple-600');
+                icon.classList.remove('text-gray-300');
+            } else {
+                label.classList.remove('border-purple-600', 'bg-purple-50');
+                label.classList.add('border-gray-200');
+                icon.classList.remove('text-purple-600');
+                icon.classList.add('text-gray-300');
             }
+        });
+    });
 
-            this.buscandoSugestoes = true;
-
-            try {
-                const response = await fetch('{{ route("api.autocomplete") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({
-                        termo: this.termoBusca
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    this.sugestoes = data.resultados || [];
-                    this.mostrarSugestoes = this.sugestoes.length > 0;
-                    console.log('Sugestões recebidas:', this.sugestoes.length);
-                } else {
-                    console.error('Erro na resposta:', response.status);
-                    this.sugestoes = [];
-                }
-
-            } catch (error) {
-                console.error('Erro ao buscar sugestões:', error);
-                this.sugestoes = [];
-            } finally {
-                this.buscandoSugestoes = false;
+    // Gerenciar radio buttons
+    const radios = document.querySelectorAll('.campo-busca-input');
+    radios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // Remover seleção de todos
+            document.querySelectorAll('.campo-busca-label').forEach(label => {
+                label.classList.remove('border-purple-600', 'bg-purple-50');
+                label.classList.add('border-gray-200');
+            });
+            
+            // Adicionar seleção ao atual
+            if (this.checked) {
+                const label = this.closest('.campo-busca-label');
+                label.classList.add('border-purple-600', 'bg-purple-50');
+                label.classList.remove('border-gray-200');
             }
-        },
-        
-        // Função para selecionar uma sugestão
-        selecionarSugestao(sugestao) {
-            this.termoBusca = sugestao.nome;
-            this.mostrarSugestoes = false;
-            this.sugestoes = [];
-            // Foca no input novamente
-            document.getElementById('termo_busca').focus();
-        },
-        
-        // Função para formatar CPF
-        formatarCPF(cpf) {
-            if (!cpf) return '';
-            // Remove qualquer formatação existente
-            cpf = cpf.replace(/\D/g, '');
-            // Aplica a formatação
-            return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        },
-        
-        // Função para limpar o formulário
-        limparFormulario() {
-            this.tiposBusca = [];
-            this.campoBusca = '';
-            this.termoBusca = '';
-            this.sugestoes = [];
-            this.mostrarSugestoes = false;
+        });
+    });
+
+    // AUTOCOMPLETE
+    const inputBusca = document.getElementById('termo_busca');
+    const dropdown = document.getElementById('autocomplete-dropdown');
+    let timeoutId = null;
+
+    inputBusca.addEventListener('input', function() {
+        clearTimeout(timeoutId);
+        const termo = this.value;
+
+        if (termo.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        // Aguarda 300ms após parar de digitar
+        timeoutId = setTimeout(() => {
+            buscarSugestoes(termo);
+        }, 300);
+    });
+
+    async function buscarSugestoes(termo) {
+        try {
+            const response = await fetch('{{ route("api.autocomplete") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ termo: termo })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                mostrarSugestoes(data.resultados || []);
+            }
+        } catch (error) {
+            console.error('Erro ao buscar sugestões:', error);
         }
     }
-}
+
+    function mostrarSugestoes(sugestoes) {
+        dropdown.innerHTML = '';
+        
+        if (sugestoes.length === 0) {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        sugestoes.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'px-4 py-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0';
+            
+            div.innerHTML = `
+                <div class="font-semibold text-gray-900">${item.nome}</div>
+                <div class="text-sm text-gray-600">
+                    ${item.cidade}/${item.estado} - CPF: ${formatarCPF(item.cpf)}
+                </div>
+                <div class="text-xs text-gray-500 mt-1">${item.email || ''}</div>
+            `;
+            
+            div.addEventListener('click', function() {
+                inputBusca.value = item.nome;
+                dropdown.style.display = 'none';
+            });
+            
+            dropdown.appendChild(div);
+        });
+
+        dropdown.style.display = 'block';
+    }
+
+    function formatarCPF(cpf) {
+        if (!cpf) return '';
+        cpf = cpf.replace(/\D/g, '');
+        return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', function(e) {
+        if (!inputBusca.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+});
 </script>
 @endpush
