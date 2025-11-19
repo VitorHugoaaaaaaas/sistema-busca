@@ -16,8 +16,8 @@
             <p class="text-gray-600">Selecione os tipos de busca e execute a pesquisa</p>
         </div>
 
-        <!-- Formulário de Busca -->
-        <form action="{{ route('buscar') }}" method="POST" class="space-y-6" x-data="{ tiposBusca: [], campoBusca: '', sugestoes: [], mostrarSugestoes: false, termoBusca: '' }">
+        <!-- Formulário de Busca COM ALPINE.JS E AUTOCOMPLETE -->
+        <form action="{{ route('buscar') }}" method="POST" class="space-y-6" x-data="searchApp()">
             @csrf
 
             <!-- Seleção de Tipos de Busca -->
@@ -133,7 +133,7 @@
                     id="termo_busca" 
                     name="termo_busca" 
                     x-model="termoBusca"
-                    @input="buscarSugestoes()"
+                    @input.debounce.300ms="buscarSugestoes()"
                     @focus="if(sugestoes.length > 0) mostrarSugestoes = true"
                     value="{{ old('termo_busca') }}"
                     placeholder="Ex: João, 12345678900, São Paulo..."
@@ -147,20 +147,26 @@
                     x-show="mostrarSugestoes && sugestoes.length > 0" 
                     @click.away="mostrarSugestoes = false"
                     class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
-                    style="display: none;"
+                    x-transition
                 >
                     <template x-for="sugestao in sugestoes" :key="sugestao.id">
                         <div
-                            @click="termoBusca = sugestao.nome; mostrarSugestoes = false; sugestoes = []"
-                            class="px-4 py-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                            @click="selecionarSugestao(sugestao)"
+                            class="px-4 py-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
                         >
                             <div class="font-semibold text-gray-900" x-text="sugestao.nome"></div>
                             <div class="text-sm text-gray-600">
                                 <span x-text="sugestao.cidade"></span>/<span x-text="sugestao.estado"></span> - 
-                                <span x-text="formatarCPF(sugestao.cpf)"></span>
+                                CPF: <span x-text="formatarCPF(sugestao.cpf)"></span>
                             </div>
+                            <div class="text-xs text-gray-500 mt-1" x-text="sugestao.email"></div>
                         </div>
                     </template>
+                </div>
+                
+                <!-- Loading indicator -->
+                <div x-show="buscandoSugestoes" class="absolute right-3 top-11">
+                    <i class="fas fa-spinner fa-spin text-purple-600"></i>
                 </div>
                 
                 @error('termo_busca')
@@ -186,7 +192,7 @@
                 <button 
                     type="reset" 
                     class="flex-1 sm:flex-initial bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-lg hover:bg-gray-300 transition"
-                    @click="tiposBusca = []; campoBusca = ''; termoBusca = ''; sugestoes = [];"
+                    @click="limparFormulario()"
                 >
                     <i class="fas fa-redo mr-2"></i>
                     Limpar
@@ -222,21 +228,29 @@
 
     </div>
 </div>
+@endsection
 
 @push('scripts')
 <script>
-// Adicionar as funções do Alpine.js inline
-document.addEventListener('alpine:init', () => {
-    Alpine.data('buscaApp', () => ({
-        // Funções já existentes mantidas...
+function searchApp() {
+    return {
+        tiposBusca: [],
+        campoBusca: '',
+        termoBusca: '',
+        sugestoes: [],
+        mostrarSugestoes: false,
+        buscandoSugestoes: false,
         
         // Função para buscar sugestões (autocomplete)
         async buscarSugestoes() {
+            // Verifica se tem pelo menos 2 caracteres
             if (this.termoBusca.length < 2) {
                 this.sugestoes = [];
                 this.mostrarSugestoes = false;
                 return;
             }
+
+            this.buscandoSugestoes = true;
 
             try {
                 const response = await fetch('{{ route("api.autocomplete") }}', {
@@ -250,23 +264,51 @@ document.addEventListener('alpine:init', () => {
                     })
                 });
 
-                const data = await response.json();
-                this.sugestoes = data.resultados || [];
-                this.mostrarSugestoes = this.sugestoes.length > 0;
+                if (response.ok) {
+                    const data = await response.json();
+                    this.sugestoes = data.resultados || [];
+                    this.mostrarSugestoes = this.sugestoes.length > 0;
+                    console.log('Sugestões recebidas:', this.sugestoes.length);
+                } else {
+                    console.error('Erro na resposta:', response.status);
+                    this.sugestoes = [];
+                }
 
             } catch (error) {
                 console.error('Erro ao buscar sugestões:', error);
                 this.sugestoes = [];
+            } finally {
+                this.buscandoSugestoes = false;
             }
+        },
+        
+        // Função para selecionar uma sugestão
+        selecionarSugestao(sugestao) {
+            this.termoBusca = sugestao.nome;
+            this.mostrarSugestoes = false;
+            this.sugestoes = [];
+            // Foca no input novamente
+            document.getElementById('termo_busca').focus();
         },
         
         // Função para formatar CPF
         formatarCPF(cpf) {
             if (!cpf) return '';
+            // Remove qualquer formatação existente
+            cpf = cpf.replace(/\D/g, '');
+            // Aplica a formatação
             return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        },
+        
+        // Função para limpar o formulário
+        limparFormulario() {
+            this.tiposBusca = [];
+            this.campoBusca = '';
+            this.termoBusca = '';
+            this.sugestoes = [];
+            this.mostrarSugestoes = false;
         }
-    }))
-});
+    }
+}
 </script>
 @endpush
-@endsection
