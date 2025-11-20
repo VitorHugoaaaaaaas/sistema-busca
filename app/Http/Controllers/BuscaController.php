@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Controller: BuscaController
+ * * Controlador principal do sistema de buscas.
+ * Gerencia as requisições HTTP e coordena os diferentes tipos de busca.
+ * * Localização: app/Http/Controllers/BuscaController.php
+ */
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -10,10 +17,16 @@ use App\Models\Registro;
 
 class BuscaController extends Controller
 {
+    /**
+     * Instâncias dos serviços de busca
+     */
     private $buscaSequencial;
     private $buscaIndexada;
     private $buscaHashMap;
 
+    /**
+     * Construtor - injeta os serviços
+     */
     public function __construct(
         BuscaSequencialService $buscaSequencial,
         BuscaIndexadaService $buscaIndexada,
@@ -24,14 +37,21 @@ class BuscaController extends Controller
         $this->buscaHashMap = $buscaHashMap;
     }
 
+    /**
+     * Página inicial - Dashboard
+     * * Exibe estatísticas e informações sobre o sistema
+     * Rota: GET /
+     */
     public function index()
     {
+        // Busca estatísticas do banco
         $stats = Registro::estatisticas();
-
+        
+        // Informações sobre cada tipo de busca
         $infoSequencial = BuscaSequencialService::getInfo();
         $infoIndexada = BuscaIndexadaService::getInfo();
         $infoHashMap = BuscaHashMapService::getInfo();
-
+        
         return view('busca.index', compact(
             'stats',
             'infoSequencial',
@@ -40,18 +60,40 @@ class BuscaController extends Controller
         ));
     }
 
+    /**
+     * Página de pesquisa
+     * * Exibe o formulário de busca e UMA AMOSTRA ALEATÓRIA de dados
+     * Rota: GET /pesquisar
+     */
     public function pesquisar()
     {
-        return view('busca.pesquisar');
+        // inRandomOrder(): Embaralha os resultados no banco para trazer aleatórios
+        // limit(10): Garante que só traga 10 registros para não pesar o sistema
+        $registros = Registro::inRandomOrder()->limit(10)->get();
+
+        return view('busca.pesquisar', compact('registros'));
     }
 
+    /**
+     * Executa a busca
+     * * Processa o formulário e executa os tipos de busca selecionados
+     * Rota: POST /buscar
+     */
     public function buscar(Request $request)
     {
+        // Validação dos dados
         $validated = $request->validate([
             'tipo_busca' => 'required|array|min:1',
             'tipo_busca.*' => 'in:sequencial,indexada,hashmap',
             'campo_busca' => 'required|in:nome,cpf,cidade,email',
             'termo_busca' => 'required|string|min:2',
+        ], [
+            'tipo_busca.required' => 'Selecione pelo menos um tipo de busca',
+            'tipo_busca.*.in' => 'Tipo de busca inválido',
+            'campo_busca.required' => 'Selecione o campo de busca',
+            'campo_busca.in' => 'Campo de busca inválido',
+            'termo_busca.required' => 'Digite o termo a ser buscado',
+            'termo_busca.min' => 'O termo deve ter no mínimo 2 caracteres',
         ]);
 
         $resultados = [];
@@ -59,22 +101,24 @@ class BuscaController extends Controller
         $campo = $validated['campo_busca'];
         $termo = $validated['termo_busca'];
 
+        // Executa cada tipo de busca selecionado
         foreach ($tiposBusca as $tipo) {
             switch ($tipo) {
                 case 'sequencial':
                     $resultados['sequencial'] = $this->executarBuscaSequencial($campo, $termo);
                     break;
-
+                    
                 case 'indexada':
                     $resultados['indexada'] = $this->executarBuscaIndexada($campo, $termo);
                     break;
-
+                    
                 case 'hashmap':
                     $resultados['hashmap'] = $this->executarBuscaHashMap($campo, $termo);
                     break;
             }
         }
 
+        // Calcula a diferença de performance
         $comparacao = $this->compararPerformance($resultados);
 
         return view('busca.resultados', compact(
@@ -86,35 +130,9 @@ class BuscaController extends Controller
         ));
     }
 
-    public function autocomplete(Request $request)
-    {
-        $termo = $request->input('termo', '');
-
-        if (strlen($termo) < 2) {
-            return response()->json([
-                'success' => true,
-                'resultados' => [],
-                'total' => 0
-            ]);
-        }
-
-        $resultados = Registro::where(function($query) use ($termo) {
-            $query->where('nome', 'LIKE', '%' . $termo . '%')
-                  ->orWhere('email', 'LIKE', '%' . $termo . '%')
-                  ->orWhere('cpf', 'LIKE', '%' . $termo . '%')
-                  ->orWhere('cidade', 'LIKE', '%' . $termo . '%');
-        })
-        ->select('id', 'nome', 'email', 'cpf', 'cidade', 'estado', 'status')
-        ->limit(10)
-        ->get();
-
-        return response()->json([
-            'success' => true,
-            'resultados' => $resultados,
-            'total' => $resultados->count()
-        ]);
-    }
-
+    /**
+     * Executa busca sequencial
+     */
     private function executarBuscaSequencial(string $campo, string $termo): array
     {
         switch ($campo) {
@@ -124,11 +142,16 @@ class BuscaController extends Controller
                 return $this->buscaSequencial->buscarPorCpf($termo);
             case 'cidade':
                 return $this->buscaSequencial->buscarPorCidade($termo);
+            case 'email':
+                return $this->buscaSequencial->buscarPorEmail($termo);
             default:
                 return $this->buscaSequencial->buscarPorNome($termo);
         }
     }
 
+    /**
+     * Executa busca indexada
+     */
     private function executarBuscaIndexada(string $campo, string $termo): array
     {
         switch ($campo) {
@@ -146,7 +169,7 @@ class BuscaController extends Controller
     }
 
     /**
-     * 🔧 CORREÇÃO AQUI — adicionamos suporte ao campo EMAIL
+     * Executa busca por HashMap
      */
     private function executarBuscaHashMap(string $campo, string $termo): array
     {
@@ -157,13 +180,16 @@ class BuscaController extends Controller
                 return $this->buscaHashMap->buscarPorCpf($termo);
             case 'cidade':
                 return $this->buscaHashMap->buscarPorCidade($termo);
-            case 'email':   // ✔ AGORA FUNCIONA
+            case 'email':
                 return $this->buscaHashMap->buscarPorEmail($termo);
             default:
                 return $this->buscaHashMap->buscarPorNome($termo);
         }
     }
 
+    /**
+     * Compara a performance entre os tipos de busca
+     */
     private function compararPerformance(array $resultados): array
     {
         if (empty($resultados)) {
@@ -174,6 +200,7 @@ class BuscaController extends Controller
         $maisRapido = null;
         $maisLento = null;
 
+        // Coleta os tempos
         foreach ($resultados as $tipo => $resultado) {
             $tempo = $resultado['tempo_execucao'];
             $tempos[$tipo] = $tempo;
@@ -187,6 +214,7 @@ class BuscaController extends Controller
             }
         }
 
+        // Calcula diferenças percentuais
         $diferencas = [];
         $tempoBase = $tempos[$maisRapido];
 
@@ -208,22 +236,35 @@ class BuscaController extends Controller
         ];
     }
 
+    /**
+     * Página "Sobre"
+     */
     public function sobre()
     {
         return view('busca.sobre');
     }
 
+    /**
+     * Limpa o cache dos HashMaps
+     */
     public function limparCache()
     {
         $this->buscaHashMap->limparCache();
+        
         return redirect()->back()->with('success', 'Cache dos HashMaps limpo com sucesso!');
     }
 
+    /**
+     * API: Retorna estatísticas do sistema
+     */
     public function estatisticas()
     {
         return response()->json(Registro::estatisticas());
     }
 
+    /**
+     * API: Retorna informações sobre os tipos de busca
+     */
     public function infoBuscas()
     {
         return response()->json([
