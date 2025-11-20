@@ -7,7 +7,6 @@
     
     <div class="bg-white rounded-xl shadow-lg p-8 fade-in">
         
-        <!-- Cabeçalho -->
         <div class="text-center mb-8">
             <div class="inline-block bg-gradient-to-r from-purple-600 to-blue-500 p-4 rounded-full mb-4">
                 <i class="fas fa-search text-white text-3xl"></i>
@@ -16,11 +15,9 @@
             <p class="text-gray-600">Selecione os tipos de busca e execute a pesquisa</p>
         </div>
 
-        <!-- Formulário de Busca -->
-        <form action="{{ route('buscar') }}" method="POST" class="space-y-6" x-data="{ tiposBusca: [], campoBusca: '', sugestoes: [], mostrarSugestoes: false, termoBusca: '' }">
+        <form action="{{ route('buscar') }}" method="POST" class="space-y-6" x-data="{ tiposBusca: [], campoBusca: '' }">
             @csrf
 
-            <!-- Seleção de Tipos de Busca -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-3">
                     <i class="fas fa-layer-group mr-2 text-purple-600"></i>
@@ -28,7 +25,6 @@
                 </label>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- Busca Sequencial -->
                     <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:border-purple-600"
                            :class="tiposBusca.includes('sequencial') ? 'border-purple-600 bg-purple-50' : 'border-gray-200'">
                         <input type="checkbox" name="tipo_busca[]" value="sequencial" class="sr-only" x-model="tiposBusca">
@@ -43,7 +39,6 @@
                            :class="tiposBusca.includes('sequencial') ? 'text-purple-600' : 'text-gray-300'"></i>
                     </label>
 
-                    <!-- Busca Indexada -->
                     <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:border-purple-600"
                            :class="tiposBusca.includes('indexada') ? 'border-purple-600 bg-purple-50' : 'border-gray-200'">
                         <input type="checkbox" name="tipo_busca[]" value="indexada" class="sr-only" x-model="tiposBusca">
@@ -58,7 +53,6 @@
                            :class="tiposBusca.includes('indexada') ? 'text-purple-600' : 'text-gray-300'"></i>
                     </label>
 
-                    <!-- Busca HashMap -->
                     <label class="relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition hover:border-purple-600"
                            :class="tiposBusca.includes('hashmap') ? 'border-purple-600 bg-purple-50' : 'border-gray-200'">
                         <input type="checkbox" name="tipo_busca[]" value="hashmap" class="sr-only" x-model="tiposBusca">
@@ -79,7 +73,6 @@
                 @enderror
             </div>
 
-            <!-- Campo de Busca -->
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-3">
                     <i class="fas fa-filter mr-2 text-purple-600"></i>
@@ -121,59 +114,30 @@
                 @enderror
             </div>
 
-            <!-- Termo de Busca COM AUTOCOMPLETE -->
-            <div class="relative">
+            <div>
                 <label for="termo_busca" class="block text-sm font-medium text-gray-700 mb-2">
                     <i class="fas fa-keyboard mr-2 text-purple-600"></i>
                     Digite o Termo de Busca
                 </label>
-                
                 <input 
                     type="text" 
                     id="termo_busca" 
                     name="termo_busca" 
-                    x-model="termoBusca"
-                    @input="buscarSugestoes()"
-                    @focus="if(sugestoes.length > 0) mostrarSugestoes = true"
                     value="{{ old('termo_busca') }}"
                     placeholder="Ex: João, 12345678900, São Paulo..."
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent transition"
                     required
-                    autocomplete="off"
                 >
-                
-                <!-- Dropdown de Autocomplete -->
-                <div 
-                    x-show="mostrarSugestoes && sugestoes.length > 0" 
-                    @click.away="mostrarSugestoes = false"
-                    class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
-                    style="display: none;"
-                >
-                    <template x-for="sugestao in sugestoes" :key="sugestao.id">
-                        <div
-                            @click="termoBusca = sugestao.nome; mostrarSugestoes = false; sugestoes = []"
-                            class="px-4 py-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                        >
-                            <div class="font-semibold text-gray-900" x-text="sugestao.nome"></div>
-                            <div class="text-sm text-gray-600">
-                                <span x-text="sugestao.cidade"></span>/<span x-text="sugestao.estado"></span> - 
-                                <span x-text="formatarCPF(sugestao.cpf)"></span>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-                
                 @error('termo_busca')
                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                 @enderror
                 
                 <p class="mt-2 text-sm text-gray-500">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Dica: Digite pelo menos 2 caracteres para ver sugestões
+                    Dica: Digite pelo menos 2 caracteres para iniciar a busca
                 </p>
             </div>
 
-            <!-- Botão de Buscar -->
             <div class="flex flex-col sm:flex-row gap-4 pt-4">
                 <button 
                     type="submit" 
@@ -186,7 +150,7 @@
                 <button 
                     type="reset" 
                     class="flex-1 sm:flex-initial bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-lg hover:bg-gray-300 transition"
-                    @click="tiposBusca = []; campoBusca = ''; termoBusca = ''; sugestoes = [];"
+                    @click="tiposBusca = []; campoBusca = '';"
                 >
                     <i class="fas fa-redo mr-2"></i>
                     Limpar
@@ -194,7 +158,59 @@
             </div>
         </form>
 
-        <!-- Informações Adicionais -->
+        <div class="mt-12 pt-8 border-t border-gray-200">
+            <div class="flex items-center mb-6">
+                <div class="bg-purple-100 p-3 rounded-full mr-4">
+                    <i class="fas fa-database text-purple-600 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">Amostra de Dados</h2>
+                    <p class="text-gray-600 text-sm">Exibindo 10 registros aleatórios do sistema para consulta</p>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CPF</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cidade</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @if(isset($registros) && count($registros) > 0)
+                            @foreach($registros as $registro)
+                            <tr class="hover:bg-purple-50 transition-colors duration-150">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ $registro->nome }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ $registro->cpf }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{ $registro->cidade }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ $registro->email }}
+                                </td>
+                            </tr>
+                            @endforeach
+                        @else
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                                    Nenhum registro encontrado ou falha ao carregar.
+                                </td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
+            </div>
+
         <div class="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
             <h3 class="font-semibold text-blue-900 mb-3">
                 <i class="fas fa-lightbulb mr-2"></i>
@@ -211,62 +227,11 @@
                 </li>
                 <li class="flex items-start">
                     <i class="fas fa-check-circle mr-2 mt-1 text-blue-600"></i>
-                    <span>Digite o termo e veja os resultados com métricas de performance</span>
-                </li>
-                <li class="flex items-start">
-                    <i class="fas fa-check-circle mr-2 mt-1 text-blue-600"></i>
-                    <span>O sistema possui mais de 5.000 registros para demonstração</span>
+                    <span>Você pode usar a tabela acima para copiar dados de exemplo</span>
                 </li>
             </ul>
         </div>
 
     </div>
 </div>
-
-@push('scripts')
-<script>
-// Adicionar as funções do Alpine.js inline
-document.addEventListener('alpine:init', () => {
-    Alpine.data('buscaApp', () => ({
-        // Funções já existentes mantidas...
-        
-        // Função para buscar sugestões (autocomplete)
-        async buscarSugestoes() {
-            if (this.termoBusca.length < 2) {
-                this.sugestoes = [];
-                this.mostrarSugestoes = false;
-                return;
-            }
-
-            try {
-                const response = await fetch('{{ route("api.autocomplete") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({
-                        termo: this.termoBusca
-                    })
-                });
-
-                const data = await response.json();
-                this.sugestoes = data.resultados || [];
-                this.mostrarSugestoes = this.sugestoes.length > 0;
-
-            } catch (error) {
-                console.error('Erro ao buscar sugestões:', error);
-                this.sugestoes = [];
-            }
-        },
-        
-        // Função para formatar CPF
-        formatarCPF(cpf) {
-            if (!cpf) return '';
-            return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        }
-    }))
-});
-</script>
-@endpush
 @endsection
