@@ -17,7 +17,7 @@
         </div>
 
         <!-- Formulário de Busca -->
-        <form action="{{ route('buscar') }}" method="POST" class="space-y-6" x-data="{ tiposBusca: [], campoBusca: '' }">
+        <form action="{{ route('buscar') }}" method="POST" class="space-y-6" x-data="{ tiposBusca: [], campoBusca: '', sugestoes: [], mostrarSugestoes: false, termoBusca: '' }">
             @csrf
 
             <!-- Seleção de Tipos de Busca -->
@@ -121,28 +121,55 @@
                 @enderror
             </div>
 
-            <!-- Termo de Busca -->
-            <div>
+            <!-- Termo de Busca COM AUTOCOMPLETE -->
+            <div class="relative">
                 <label for="termo_busca" class="block text-sm font-medium text-gray-700 mb-2">
                     <i class="fas fa-keyboard mr-2 text-purple-600"></i>
                     Digite o Termo de Busca
                 </label>
+                
                 <input 
                     type="text" 
                     id="termo_busca" 
                     name="termo_busca" 
+                    x-model="termoBusca"
+                    @input="buscarSugestoes()"
+                    @focus="if(sugestoes.length > 0) mostrarSugestoes = true"
                     value="{{ old('termo_busca') }}"
                     placeholder="Ex: João, 12345678900, São Paulo..."
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent transition"
                     required
+                    autocomplete="off"
                 >
+                
+                <!-- Dropdown de Autocomplete -->
+                <div 
+                    x-show="mostrarSugestoes && sugestoes.length > 0" 
+                    @click.away="mostrarSugestoes = false"
+                    class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                    style="display: none;"
+                >
+                    <template x-for="sugestao in sugestoes" :key="sugestao.id">
+                        <div
+                            @click="termoBusca = sugestao.nome; mostrarSugestoes = false; sugestoes = []"
+                            class="px-4 py-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                        >
+                            <div class="font-semibold text-gray-900" x-text="sugestao.nome"></div>
+                            <div class="text-sm text-gray-600">
+                                <span x-text="sugestao.cidade"></span>/<span x-text="sugestao.estado"></span> - 
+                                <span x-text="formatarCPF(sugestao.cpf)"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                
                 @error('termo_busca')
                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                 @enderror
                 
                 <p class="mt-2 text-sm text-gray-500">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Dica: Digite pelo menos 2 caracteres para iniciar a busca
+                    Dica: Digite pelo menos 2 caracteres para ver sugestões
                 </p>
             </div>
 
@@ -159,7 +186,7 @@
                 <button 
                     type="reset" 
                     class="flex-1 sm:flex-initial bg-gray-200 text-gray-700 font-semibold py-4 px-6 rounded-lg hover:bg-gray-300 transition"
-                    @click="tiposBusca = []; campoBusca = '';"
+                    @click="tiposBusca = []; campoBusca = ''; termoBusca = ''; sugestoes = [];"
                 >
                     <i class="fas fa-redo mr-2"></i>
                     Limpar
@@ -195,4 +222,51 @@
 
     </div>
 </div>
+
+@push('scripts')
+<script>
+// Adicionar as funções do Alpine.js inline
+document.addEventListener('alpine:init', () => {
+    Alpine.data('buscaApp', () => ({
+        // Funções já existentes mantidas...
+        
+        // Função para buscar sugestões (autocomplete)
+        async buscarSugestoes() {
+            if (this.termoBusca.length < 2) {
+                this.sugestoes = [];
+                this.mostrarSugestoes = false;
+                return;
+            }
+
+            try {
+                const response = await fetch('{{ route("api.autocomplete") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        termo: this.termoBusca
+                    })
+                });
+
+                const data = await response.json();
+                this.sugestoes = data.resultados || [];
+                this.mostrarSugestoes = this.sugestoes.length > 0;
+
+            } catch (error) {
+                console.error('Erro ao buscar sugestões:', error);
+                this.sugestoes = [];
+            }
+        },
+        
+        // Função para formatar CPF
+        formatarCPF(cpf) {
+            if (!cpf) return '';
+            return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+    }))
+});
+</script>
+@endpush
 @endsection
