@@ -5,7 +5,6 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     
-    <!-- Cabeçalho -->
     <div class="bg-white rounded-xl shadow-lg p-6 mb-6 fade-in">
         <div class="flex items-center justify-between">
             <div>
@@ -22,7 +21,6 @@
         </div>
     </div>
 
-    <!-- Comparação de Performance -->
     @if(count($comparacao) > 0)
     <div class="bg-white rounded-xl shadow-lg p-8 mb-6 fade-in">
         <h2 class="text-2xl font-bold text-gray-900 mb-6">
@@ -31,12 +29,10 @@
         </h2>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Gráfico -->
             <div>
                 <canvas id="chartPerformance"></canvas>
             </div>
 
-            <!-- Métricas -->
             <div class="space-y-4">
                 <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
                     <div class="flex items-center mb-2">
@@ -87,11 +83,9 @@
     </div>
     @endif
 
-    <!-- Resultados de Cada Busca -->
     @foreach($resultados as $tipo => $resultado)
     <div class="bg-white rounded-xl shadow-lg p-8 mb-6 fade-in" style="animation-delay: {{ $loop->index * 0.1 }}s;">
         
-        <!-- Cabeçalho do Tipo de Busca -->
         <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-bold text-gray-900">
                 @if($tipo === 'sequencial')
@@ -103,7 +97,6 @@
                 @endif
             </h2>
 
-            <!-- Cronômetro -->
             <div class="flex items-center space-x-4">
                 <div class="text-right">
                     <p class="text-sm text-gray-500">Tempo de Execução</p>
@@ -119,7 +112,6 @@
             </div>
         </div>
 
-        <!-- Métricas Técnicas -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-gray-50 p-4 rounded-lg">
                 <p class="text-sm text-gray-500 mb-1">Resultados</p>
@@ -155,7 +147,6 @@
             @endif
         </div>
 
-        <!-- Descrição -->
         <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
             <p class="text-blue-900">
                 <i class="fas fa-info-circle mr-2"></i>
@@ -163,7 +154,6 @@
             </p>
         </div>
 
-        <!-- Tabela de Resultados -->
         @if($resultado['total_encontrado'] > 0)
         <div class="overflow-x-auto">
             <h3 class="font-semibold text-gray-900 mb-3">
@@ -248,6 +238,7 @@ const chart = new Chart(ctx, {
             borderColor: backgroundColors,
             borderWidth: 2,
             borderRadius: 8,
+            minBarLength: 10, // CORREÇÃO: Define um tamanho mínimo para a barra aparecer
         }]
     },
     options: {
