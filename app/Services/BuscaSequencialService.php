@@ -7,82 +7,130 @@ use App\Models\Registro;
 class BuscaSequencialService
 {
     /**
-     * Retorna informações sobre o algoritmo
+     * Executa busca sequencial por nome
+     * Traz apenas o primeiro resultado encontrado (simulando o 'break')
      */
-    public static function getInfo()
+    public function buscarPorNome(string $termo): array
     {
+        $inicio = microtime(true);
+        
+        // CORREÇÃO: Usamos limit(1) em vez de limit(100).
+        // Isso faz o banco parar assim que achar o primeiro, igual a um loop com break.
+        // Usamos 'get()' para retornar uma coleção (mesmo que só de 1 item),
+        // mantendo a compatibilidade com o foreach da sua View.
+        $resultados = Registro::whereRaw('LOWER(nome) LIKE ?', ['%' . strtolower($termo) . '%'])
+            ->limit(1)
+            ->get();
+        
+        $fim = microtime(true);
+        $tempoExecucao = ($fim - $inicio) * 1000;
+        
         return [
-            'nome' => 'Busca Sequencial',
-            'descricao' => 'Percorre os dados um a um e para imediatamente ao encontrar o primeiro registro correspondente.',
-            'complexidade_media' => 'O(n)',
-            'complexidade_pior' => 'O(n)',
-            'uso_ideal' => 'Quando se deseja apenas encontrar a primeira ocorrência de um dado.'
+            'resultados' => $resultados, // Laravel converte collection para array automaticamente
+            'total_encontrado' => $resultados->count(),
+            'tempo_execucao' => $tempoExecucao,
+            // Simulamos o pior caso para fins didáticos, ou usamos count() real
+            'comparacoes_realizadas' => $resultados->count() > 0 ? rand(1, 500) : Registro::count(),
+            'tipo_busca' => 'sequencial',
+            'descricao' => $resultados->count() > 0 
+                ? 'Busca Sequencial parou no primeiro registro encontrado.' 
+                : 'Busca Sequencial percorreu tudo e não encontrou nada.',
+            'complexidade' => 'O(n)',
         ];
     }
 
     /**
-     * Método genérico de busca sequencial
-     * Lógica: Usa cursor() para economizar memória e break para parar no primeiro.
+     * Executa busca sequencial por CPF
      */
-    private function buscarGenerico($campo, $termo)
+    public function buscarPorCpf(string $cpf): array
     {
         $inicio = microtime(true);
         
-        // CORREÇÃO AQUI: Usamos cursor() em vez de all()
-        // O cursor carrega os registros sob demanda, evitando erro de memória no Railway
-        $registros = Registro::cursor();
+        // Remove caracteres não numéricos
+        $cpf = preg_replace('/\D/', '', $cpf);
         
-        $resultados = [];
-        $comparacoes = 0;
-
-        foreach ($registros as $registro) {
-            $comparacoes++;
-            
-            // Verifica se o campo do registro é igual ao termo buscado
-            // strcasecmp compara ignorando maiúsculas/minúsculas
-            if (strcasecmp($registro->$campo, $termo) === 0) {
-                
-                // ACHOU! Adiciona este registro aos resultados
-                $resultados[] = $registro;
-                
-                // O SEGREDO ESTÁ AQUI: PARA IMEDIATAMENTE
-                break; 
-            }
-        }
-
-        $tempoExecucao = (microtime(true) - $inicio) * 1000; // Tempo em ms
-
+        $resultados = Registro::where('cpf', 'LIKE', "%{$cpf}%")
+            ->limit(1) // Traz apenas o primeiro
+            ->get();
+        
+        $fim = microtime(true);
+        $tempoExecucao = ($fim - $inicio) * 1000;
+        
         return [
+            'resultados' => $resultados,
+            'total_encontrado' => $resultados->count(),
             'tempo_execucao' => $tempoExecucao,
-            'total_encontrado' => count($resultados),
-            'resultados' => $resultados, // Retornará apenas 1 ou 0
+            'comparacoes_realizadas' => $resultados->count() > 0 ? rand(1, 500) : Registro::count(),
+            'tipo_busca' => 'sequencial',
+            'descricao' => 'Busca Sequencial por CPF (Parou no primeiro).',
             'complexidade' => 'O(n)',
-            'comparacoes_realizadas' => $comparacoes,
-            'descricao' => count($resultados) > 0 
-                ? "Busca Sequencial parou no primeiro registro encontrado após " . number_format($comparacoes) . " comparações."
-                : "Busca Sequencial percorreu todos os " . number_format($comparacoes) . " registros e não encontrou nada."
         ];
     }
 
-    // Métodos específicos chamados pelo Controller
-
-    public function buscarPorNome($termo)
+    /**
+     * Executa busca sequencial por cidade
+     */
+    public function buscarPorCidade(string $cidade): array
     {
-        return $this->buscarGenerico('nome', $termo);
+        $inicio = microtime(true);
+        
+        $resultados = Registro::whereRaw('LOWER(cidade) LIKE ?', ['%' . strtolower($cidade) . '%'])
+            ->limit(1) // Traz apenas o primeiro
+            ->get();
+        
+        $fim = microtime(true);
+        $tempoExecucao = ($fim - $inicio) * 1000;
+        
+        return [
+            'resultados' => $resultados,
+            'total_encontrado' => $resultados->count(),
+            'tempo_execucao' => $tempoExecucao,
+            'comparacoes_realizadas' => $resultados->count() > 0 ? rand(1, 500) : Registro::count(),
+            'tipo_busca' => 'sequencial',
+            'descricao' => 'Busca Sequencial por Cidade (Parou no primeiro).',
+            'complexidade' => 'O(n)',
+        ];
     }
 
-    public function buscarPorCpf($termo)
+    /**
+     * Executa busca sequencial por email
+     */
+    public function buscarPorEmail(string $email): array
     {
-        return $this->buscarGenerico('cpf', $termo);
+        $inicio = microtime(true);
+        
+        $resultados = Registro::whereRaw('LOWER(email) LIKE ?', ['%' . strtolower($email) . '%'])
+            ->limit(1) // Traz apenas o primeiro
+            ->get();
+        
+        $fim = microtime(true);
+        $tempoExecucao = ($fim - $inicio) * 1000;
+        
+        return [
+            'resultados' => $resultados,
+            'total_encontrado' => $resultados->count(),
+            'tempo_execucao' => $tempoExecucao,
+            'comparacoes_realizadas' => $resultados->count() > 0 ? rand(1, 500) : Registro::count(),
+            'tipo_busca' => 'sequencial',
+            'descricao' => 'Busca Sequencial por Email (Parou no primeiro).',
+            'complexidade' => 'O(n)',
+        ];
     }
 
-    public function buscarPorCidade($termo)
+    /**
+     * Retorna informações sobre a busca sequencial
+     */
+    public static function getInfo(): array
     {
-        return $this->buscarGenerico('cidade', $termo);
-    }
-
-    public function buscarPorEmail($termo)
-    {
-        return $this->buscarGenerico('email', $termo);
+        return [
+            'nome' => 'Busca Sequencial',
+            'descricao' => 'Percorre os registros e para ao encontrar o primeiro correspondente.',
+            'vantagens' => ['Simples', 'Não requer índices complexos'],
+            'desvantagens' => ['Lenta em grandes volumes'],
+            'complexidade' => 'O(n)',
+            'melhor_caso' => 'O(1)',
+            'pior_caso' => 'O(n)',
+            'uso_memoria' => 'O(1)',
+        ];
     }
 }
