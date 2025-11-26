@@ -22,16 +22,15 @@ class BuscaSequencialService
 
     /**
      * Método genérico de busca sequencial
-     * Lógica: Percorre a lista e dá um BREAK assim que acha o primeiro
+     * Lógica: Usa cursor() para economizar memória e break para parar no primeiro.
      */
     private function buscarGenerico($campo, $termo)
     {
         $inicio = microtime(true);
         
-        // Carrega os dados para percorrer
-        // Nota: Em um cenário real, "Registro::all()" carrega tudo na memória. 
-        // Para a busca sequencial didática, isso é necessário para simular o loop PHP.
-        $registros = Registro::all();
+        // CORREÇÃO AQUI: Usamos cursor() em vez de all()
+        // O cursor carrega os registros sob demanda, evitando erro de memória no Railway
+        $registros = Registro::cursor();
         
         $resultados = [];
         $comparacoes = 0;
@@ -46,9 +45,7 @@ class BuscaSequencialService
                 // ACHOU! Adiciona este registro aos resultados
                 $resultados[] = $registro;
                 
-                // --- O SEGREDO ESTÁ AQUI ---
-                // O comando 'break' encerra o loop 'foreach' imediatamente.
-                // Ele não vai olhar o próximo registro. Vai parar no primeiro ID que achou.
+                // O SEGREDO ESTÁ AQUI: PARA IMEDIATAMENTE
                 break; 
             }
         }
@@ -57,8 +54,8 @@ class BuscaSequencialService
 
         return [
             'tempo_execucao' => $tempoExecucao,
-            'total_encontrado' => count($resultados), // Será sempre 1 ou 0
-            'resultados' => $resultados,
+            'total_encontrado' => count($resultados),
+            'resultados' => $resultados, // Retornará apenas 1 ou 0
             'complexidade' => 'O(n)',
             'comparacoes_realizadas' => $comparacoes,
             'descricao' => count($resultados) > 0 
@@ -68,7 +65,6 @@ class BuscaSequencialService
     }
 
     // Métodos específicos chamados pelo Controller
-    // Todos usam o buscarGenerico que tem o 'break'
 
     public function buscarPorNome($termo)
     {
